@@ -22,14 +22,14 @@ def parse(sid, year, m1=1, d1=1, m2=12, d2=31):
     :param d1:      start day, inclusive
     :param m2:      end month, inclusive
     :param d2:      end day, inclusive
-    :return rec:    records of temperature time series
+    :return rec:    records of temperature time series (an all-zero row if no record found)
     """
 
-    filename = 'raw/%s-%4d' % (sid, year)
+    filename = 'raw/%s-%4d.txt' % (sid, year)
     f = open(filename, 'r')
     row_num = 24 * (_cal_day_gap(year, m1, d1, m2, d2) + 1)
-    rec = np.empty(shape=(row_num, 12), dtype=int)
-    rec[:] = np.nan
+    rec = np.zeros(shape=(row_num, 12), dtype=int)
+    # rec[:] = np.nan
 
     # todo in case skipped rows
 
@@ -51,7 +51,7 @@ def parse(sid, year, m1=1, d1=1, m2=12, d2=31):
 
 def test_sfo():
     # SFO Airport
-    rec = parse('724940-23234', 2017, 2, 6, 2, 7)
+    rec = parse('724940-23234', 2017, 2, 6, 2, 8)
     # y, m, d, h, oat, dt, slp, wd, ws, sky, ppt, ppt6 = \
     row_num, _ = rec.shape
     for day in xrange(row_num/24):
@@ -60,6 +60,7 @@ def test_sfo():
         winds = rec[day*24:(day+1)*24, 8]
         print '%d-%02d-%02d T %.1f %.1f %.1f Wind %.1f %.1f %.1f ' \
               % (y, m, d, min(oats), max(oats), np.mean(oats), min(winds), max(winds), np.mean(winds))
+    print rec
 
 if __name__ == '__main__':
     np.set_printoptions(threshold='nan')
