@@ -3,6 +3,8 @@ import datetime
 import os
 from ftplib import FTP
 import logging
+import urllib
+import zipfile
 
 import pandas as pd
 import numpy as np
@@ -17,83 +19,98 @@ np.set_printoptions(threshold=np.nan)
 pd.set_option('display.max_rows', 500)
 
 
-FILE_ISD = 'config/isd-history.csv'
-FILE_ZIP = 'config/2016_Gaz_zcta_national.txt'
+FILE_ISD = 'db/isd-history.csv'
+FILE_ZIP_FMT = 'db/%4d_Gaz_zcta_national.txt'
 
-# http://www2.census.gov/geo/docs/maps-data/data/gazetteer/2016_Gazetteer/2016_Gaz_zcta_national.zip
 
-def load_isd(end_time=None):
-    if not end_time:
-        end_time = int((datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d'))
+def load_isd(country='US', state=None, time_end=None):
+    if not time_end:
+        time_end = int((datetime.datetime.now() - datetime.timedelta(days=3)).strftime('%Y%m%d'))
 
     # if need to download FILE_ISD
     file_time = 0 if not os.path.isfile(FILE_ISD) \
         else int(datetime.datetime.fromtimestamp(os.path.getmtime(FILE_ISD)).strftime('%Y%m%d'))
-    if end_time > file_time:
+    if time_end > file_time:
         logger.info('downloading weather stations information ...')
         ftp = FTP('ftp.ncdc.noaa.gov')
         ftp.login()
         ftp.cwd('pub/data/noaa/')
-        ftp.retrbinary('RETR isd-history.csv', open('config/isd-history.csv', 'wb').write)
+        ftp.retrbinary('RETR isd-history.csv', open('db/isd-history.csv', 'wb').write)
         ftp.quit()
 
     df = pd.read_csv(FILE_ISD)
-    i_alive = df['END'] >= end_time
-    i_us = df['CTRY'] == 'US'
-    i_state = df['STATE'] == 'CA'
-    isd_select = df.loc[i_us & i_state & i_alive]
-    temp = isd_select[['STATION NAME', 'CTRY', 'STATE', 'LAT', 'LON']].sort_values(by=['LON', 'LAT'], ascending=[1, 1])
-    lats = temp['LAT'].values
-    lngs = temp['LON'].values
+    i_alive = df['END'] >= time_end
+    i_ctry = df['CTRY'] == country if country else True
+    i_state = df['STATE'] == state if state else True
+    df_isd = df.loc[i_alive & i_ctry & i_state]
 
-    print len(isd_select)
-    print temp
-
-    plot_map(lats, lngs)
-    # with open(FILE_ISD, 'r') as f:
-    #     print len(f.readlines())
-    #     for line in f.readlines()[:30]:
-    #         print line
+    return df_isd
 
 
-def load_zip_code():
+def load_zip_code(census_year=2016):
+    file_zip = FILE_ZIP_FMT % census_year
+    if not os.path.isfile(file_zip):
+        file_zip_url = 'http://www2.census.gov/geo/docs/maps-data/data/gazetteer' \
+                       '/%4d_Gazetteer/%4d_Gaz_zcta_national.zip' % (census_year, census_year)
+        urllib.urlretrieve(file_zip_url, 'db/temp_zip_code.zip')
+        zip_ref = zipfile.ZipFile('db/temp_zip_code.zip', 'r')
+        zip_ref.extractall('db')
+        zip_ref.close()
+        os.remove('db/temp_zip_code.zip')
     zip2gps = dict()
-    with open(FILE_ZIP, 'r') as f:
+    with open(file_zip, 'r') as f:
         for line in f.readlines()[1:]:
             fields = line.split()
             zip_code, lat, lng = fields[0], float(fields[5]), float(fields[6])
-            geo = Geohash.encode(lat, lng)
-            zip2gps[zip_code] = (geo, lat, lng)
+            zip2gps[zip_code] = (lat, lng)
         f.close()
     return zip2gps
 
 
-def plot_map(lats, lngs):
-    geo2isd = dict()
-    for lat, lng in zip(lats, lngs):
-        geo2isd[Geohash.encode(lat, lng)] = (lat, lng)
+def match_isd(gps, df_isd, isd_num=3):
+    geo_hash = Geohash.encode(gps[0], gps[1])
 
+    geo2row = dict()
+    for row in xrange(len(df_isd)):
+        lat, lng = df_isd.iloc[row][['LAT', 'LON']]
+        geo2row[Geohash.encode(lat, lng)] = (row, lat, lng)
+    geo_list = sorted(geo2row.keys())
+    pos = bisect.bisect_left(geo_list, geo_hash)
+    row2distance = dict()
+    for g in geo_list[max(pos-isd_num, 0):min(pos+isd_num+1, len(geo_list))]:
+        row, lat, lng = geo2row[g]
+        row2distance[row] = int(vincenty((lat, lng), gps).miles)
+    sorted_rows = sorted(row2distance, key=row2distance.get)
+
+    matched = dict()
+    for i, row in enumerate(sorted_rows):
+        distance = row2distance[row]
+        if i >= 1 and distance > 10:
+            continue
+        if len(matched) >= isd_num:
+            continue
+        usaf, wban, lat, lng = df_isd.iloc[row][['USAF', 'WBAN', 'LAT', 'LON']]
+        matched['%d-%d' % (usaf, wban)] = distance, lat, lng
+    logger.info('GPS(%.3f, %.3f) nearby station miles %s'
+                % (gps[0], gps[1], ' '.join([str(matched[x][0]) for x in matched])))
+    return matched
+
+
+def plot_map(gps, matched, df_isd):
+    g_map = gmplot.GoogleMapPlotter(gps[0], gps[1], 10)
+    g_map.scatter(df_isd['LAT'].values, df_isd['LON'].values, color='cornflowerblue', size=5)
+    g_map.scatter([x[1] for x in matched.values()], [x[2] for x in matched.values()], color='red', size=9)
+    g_map.scatter([gps[0]], [gps[1]], color='purple', size=9)
+    g_map.draw("tmp/station_map.html")
+
+
+def test_match(zip_code, state):
+    df_isd = load_isd('US', state)
     zip2gps = load_zip_code()
-    geo, lat, lng = zip2gps['94014']
-
-    geos = sorted(geo2isd.keys())
-    idx = bisect.bisect_left(geos, geo)
-    print idx
-    nearby = [geo2isd[isd] for isd in geos[idx-1:idx+5]]
-    nearby_lats = [x[0] for x in nearby]
-    nearby_lngs = [x[1] for x in nearby]
-
-    distances = [int(vincenty((lat, lng), x).miles) for x in nearby]
-    print distances
-
-    center_lat, center_lng = np.mean(lats), np.mean(lngs)
-    g_map = gmplot.GoogleMapPlotter(center_lat, center_lng, 6)
-    g_map.scatter(lats, lngs, color='cornflowerblue', size=7)
-    g_map.scatter(nearby_lats, nearby_lngs, color='red', size=10)
-    # g_map.heatmap(heat_lats, heat_lngs)
-    g_map.draw("mymap.html")
+    gps = zip2gps[zip_code]
+    matched = match_isd(gps, df_isd)
+    plot_map(gps, matched, df_isd)
 
 
 if __name__ == '__main__':
-    load_isd()
-    # load_zip_code()
+    test_match('94014', 'CA')

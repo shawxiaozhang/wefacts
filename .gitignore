@@ -1,3 +1,7 @@
+# unnecessary directory #
+db/
+raw/
+
 # Compiled source #
 ###################
 *.com
