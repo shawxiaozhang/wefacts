@@ -1,7 +1,7 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-from ftplib import FTP
 import logging
+from ftplib import FTP
+
+import matplotlib.pyplot as plt
 
 import fetch
 import match
