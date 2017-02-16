@@ -1,6 +1,8 @@
 # unnecessary directory #
-raw/
-result/
+/raw/
+/result/
+/dist/
+/*.egg-info
 
 # Compiled source #
 ###################
