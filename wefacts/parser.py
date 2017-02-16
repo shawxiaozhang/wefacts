@@ -25,7 +25,7 @@ def parse(sid, year, m1=1, d1=1, m2=12, d2=31):
     :param d2:      end day, inclusive
     :return rec:    records of temperature time series (an all-zero row if no record found)
     """
-    filename = 'raw/%s-%4d.txt' % (sid, year)
+    filename = '../raw/%s-%4d.txt' % (sid, year)
     f = open(filename, 'r')
     lines = f.readlines()
     f.close()

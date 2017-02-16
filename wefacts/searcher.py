@@ -20,8 +20,8 @@ np.set_printoptions(threshold=np.nan)
 pd.set_option('display.max_rows', 500)
 
 
-FILE_ISD = 'db/isd-history.csv'
-FILE_ZIP_FMT = 'db/%4d_Gaz_zcta_national.txt'
+FILE_ISD = '../raw/isd-history.csv'
+FILE_ZIP_FMT = '../raw/%4d_Gaz_zcta_national.txt'
 
 
 def load_isd(country='US', state=None, time_end=None):
@@ -37,7 +37,7 @@ def load_isd(country='US', state=None, time_end=None):
         ftp = FTP('ftp.ncdc.noaa.gov')
         ftp.login()
         ftp.cwd('pub/data/noaa/')
-        ftp.retrbinary('RETR isd-history.csv', open('db/isd-history.csv', 'wb').write)
+        ftp.retrbinary('RETR isd-history.csv', open('../raw/isd-history.csv', 'wb').write)
         ftp.quit()
 
     df = pd.read_csv(FILE_ISD)
@@ -54,11 +54,11 @@ def load_zip_code(census_year=2016):
     if not os.path.isfile(file_zip):
         file_zip_url = 'http://www2.census.gov/geo/docs/maps-data/data/gazetteer' \
                        '/%4d_Gazetteer/%4d_Gaz_zcta_national.zip' % (census_year, census_year)
-        urllib.urlretrieve(file_zip_url, 'db/temp_zip_code.zip')
-        zip_ref = zipfile.ZipFile('db/temp_zip_code.zip', 'r')
-        zip_ref.extractall('db')
+        urllib.urlretrieve(file_zip_url, '../raw/temp_zip_code.zip')
+        zip_ref = zipfile.ZipFile('../raw/temp_zip_code.zip', 'r')
+        zip_ref.extractall('../raw')
         zip_ref.close()
-        os.remove('db/temp_zip_code.zip')
+        os.remove('../raw/temp_zip_code.zip')
     zip2gps = dict()
     with open(file_zip, 'r') as f:
         for line in f.readlines()[1:]:
