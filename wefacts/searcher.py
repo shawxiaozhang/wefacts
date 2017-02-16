@@ -69,7 +69,7 @@ def load_zip_code(census_year=2016):
     return zip2gps
 
 
-def _match_gps_isd(gps, df_isd, isd_num=3):
+def _match_gps_isd(gps, df_isd, station_num=3, miles_threshold=20):
     geo2row = dict()
     for row in xrange(len(df_isd)):
         lat, lng = df_isd.iloc[row][['LAT', 'LON']]
@@ -79,7 +79,7 @@ def _match_gps_isd(gps, df_isd, isd_num=3):
     geo_hash = Geohash.encode(gps[0], gps[1])
     pos = bisect.bisect_left(geo_list, geo_hash)
     row2distance = dict()
-    for g in geo_list[max(pos-isd_num, 0):min(pos+isd_num+1, len(geo_list))]:
+    for g in geo_list[max(pos-station_num, 0):min(pos+station_num+1, len(geo_list))]:
         row, lat, lng = geo2row[g]
         row2distance[row] = int(vincenty((lat, lng), gps).miles)
     sorted_rows = sorted(row2distance, key=row2distance.get)
@@ -87,9 +87,9 @@ def _match_gps_isd(gps, df_isd, isd_num=3):
     matched = collections.OrderedDict()
     for i, row in enumerate(sorted_rows):
         distance = row2distance[row]
-        if i >= 1 and distance > 10:
+        if i >= 1 and distance > miles_threshold:
             continue
-        if len(matched) >= isd_num:
+        if len(matched) >= station_num:
             continue
         usaf, wban, lat, lng = df_isd.iloc[row][['USAF', 'WBAN', 'LAT', 'LON']]
         matched['%d-%d' % (usaf, wban)] = distance, lat, lng
@@ -98,10 +98,9 @@ def _match_gps_isd(gps, df_isd, isd_num=3):
     return matched
 
 
-def match_isd_zip(zip_code, country='US', state='None', time_end='None', isd_num=3):
+def search_isd(gps, country='US', state='None', time_end='None', isd_num=3):
     df_isd = load_isd(country, state, time_end)
-    zip2gps = load_zip_code()
-    return _match_gps_isd(zip2gps[zip_code], df_isd, isd_num)
+    return _match_gps_isd(gps, df_isd, isd_num)
 
 
 def plot_map(gps, matched, df_isd):

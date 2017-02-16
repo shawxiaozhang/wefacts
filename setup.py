@@ -1,5 +1,15 @@
 from setuptools import setup
 
+INSTALL_REQUIRES = [
+    'numpy',
+    'geopy',
+    'pandas',
+    'Geohash',
+    'matplotlib'
+]
+
+TESTS_REQUIRES = []
+
 setup(name='wefacts',
       version='0.0',
       description='Weather Facts: historical weather data provider.',

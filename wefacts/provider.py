@@ -3,10 +3,12 @@ from ftplib import FTP
 import os
 
 import matplotlib.pyplot as plt
+from geopy.geocoders import Nominatim
 
 import fetcher
 import searcher
 import parser
+from util import *
 
 logging.basicConfig(level=logging.DEBUG, format='%(pathname)s:%(lineno)d %(message)s',)
 logger = logging.getLogger(__name__)
@@ -46,13 +48,32 @@ def _plot_weather(values, time_start, time_end, label=''):
     plt.show()
 
 
-def get_weather(zip_code, country, state, time_start, time_end, result_dir='../result/'):
+def _geo_address(address):
+    geo_locator = Nominatim()
+    location = geo_locator.geocode(address)
+    if not location:
+        logger.error('Cannot geo-locate:' + address)
+        return None, None, None
+    fields = [x.strip() for x in location.raw['display_name'].split(',')]
+    country = fields[-1]
+    state = fields[-2] if not fields[-2].isdigit() else fields[-3]
+    gps = (location.latitude, location.longitude)
+    return gps, const_country_abbrev.get(country, None), const_us_state_abbrev.get(state, None)
+
+
+def get_weather(address, time_start, time_end, result_dir='../result/'):
     if not os.path.exists('../raw'):
         os.makedirs('../raw')
     if not os.path.exists('../result'):
         os.makedirs('../result')
 
-    id2loc = searcher.match_isd_zip(zip_code, country, state, time_end)
+    gps, country, state = _geo_address(address)
+    if not gps:
+        return
+    logger.debug('%f %f %s %s' % (gps[0], gps[1], country, state))
+
+    id2loc = searcher.search_isd(gps, country, state, time_end)
+    logger.debug(id2loc)
 
     year_start, year_end = time_start/10000, time_end/10000
     for year in xrange(year_start, year_end+1):
@@ -68,13 +89,13 @@ def get_weather(zip_code, country, state, time_start, time_end, result_dir='../r
             if (year+1)*10000 > time_end:
                 m2, d2 = (time_end/100) % 100, time_end % 100
             df = parser.parse(usaf_wban, year, m1, d1, m2, d2)
-            df.to_csv('%s%s-%d-%d.csv' % (result_dir, zip_code, time_start, time_end), index=False)
+            df.to_csv('%s%s-%d-%d.csv' % (result_dir, address, time_start, time_end), index=False)
             for label in ['OAT', 'WS', 'PPT']:
                 values = df[label].values
                 _plot_weather(values, time_start, time_end, label=label)
             break
         else:
-            logger.error('no weather info for %s in %d' % (zip_code, year))
+            logger.error('no weather info for %s in %d' % (address, year))
 
 
 def test_cmp_stations():
@@ -104,8 +125,7 @@ def test_cmp_stations():
 
 
 if __name__ == '__main__':
-    get_weather('94014', 'US', 'CA', 20170209, 20170212)
-    # get_weather('15217', 'US', 'PA', 20170209, 20170214)
+    get_weather('daly city', 20170209, 20170214)
     # test_cmp_stations()
 
     # todo compare station ids between ftp-site and isd-history
