@@ -65,13 +65,10 @@ def _geo_address(address):
     return gps, const_country_abbrev.get(country, None), const_us_state_abbrev.get(state, None)
 
 
-def get_weather_csv(address, time_start, time_end, result_dir='../result/'):
-    if not os.path.exists(result_dir):
-        os.makedirs(result_dir)
-
+def get_weather(address, time_start, time_end, dump_csv=True, result_dir='../result/'):
     gps, country, state = _geo_address(address)
     if not gps:
-        return False
+        return None
 
     station2location = searcher.search_stations(gps, country, state, time_end)
 
@@ -98,22 +95,24 @@ def get_weather_csv(address, time_start, time_end, result_dir='../result/'):
                 m1, d1 = (time_start/100) % 100, time_start % 100
             if (year+1)*10000 > time_end:
                 m2, d2 = (time_end/100) % 100, time_end % 100
-            temp = parser.parse(usaf_wban, year, m1, d1, m2, d2)
+            temp = parser.parse_raw(usaf_wban, year, m1, d1, m2, d2)
             df = temp if df is None else df.append(temp)
             break
         else:
             logger.error('no weather info for %s in %d' % (address, year))
 
-    if df is None:
-        return False
-    df.to_csv('%s%s-%d-%d.csv' % (result_dir, address, time_start, time_end), index=False)
-    logger.info('weather available : %s%s-%d-%d.csv' % (result_dir, address, time_start, time_end))
-    return True
+    if dump_csv and df is not None:
+        if not os.path.exists(result_dir):
+            os.makedirs(result_dir)
+        df.to_csv('%s%s-%d-%d.csv' % (result_dir, address, time_start, time_end), index=False)
+        logger.info('weather available : %s%s-%d-%d.csv' % (result_dir, address, time_start, time_end))
+
+    return df
 
 
 def test_get_weather_cross_year():
     address, time_start, time_end, result_dir = 'squirrel hill', 20161224, 20170107, '../result/'
-    get_weather_csv(address, time_start, time_end, result_dir)
+    get_weather(address, time_start, time_end, True, result_dir)
     df = pd.read_csv('%s%s-%d-%d.csv' % (result_dir, address, time_start, time_end))
     for label in ['OAT', 'WS', 'PPT']:
         values = df[label].values
@@ -148,9 +147,9 @@ def test_cmp_stations():
 
 if __name__ == '__main__':
     # test_cmp_stations()
-    test_get_weather_cross_year()
-    # get_weather('220 macdonald ave', 20170209, 20170216)
-    # get_weather('daly city', 20170209, 20170214)
+    # test_get_weather_cross_year()
+    # get_weather_csv('220 macdonald ave', 20170209, 20170216)
+    get_weather('daly city', 20170219, 20170222)
 
     # todo station quality analysis => every 3 hours? no rain?
     # todo how to choose the best station? (precision, no rain data, no wind data)

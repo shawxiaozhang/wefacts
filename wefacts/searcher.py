@@ -8,7 +8,6 @@ import zipfile
 import collections
 
 import pandas as pd
-import numpy as np
 import gmplot
 import Geohash
 from geopy.distance import vincenty
@@ -16,7 +15,6 @@ from geopy.distance import vincenty
 
 logging.basicConfig(level=logging.DEBUG, format='%(pathname)s:%(lineno)d %(message)s',)
 logger = logging.getLogger(__name__)
-np.set_printoptions(threshold=np.nan)
 pd.set_option('display.max_rows', 500)
 
 
@@ -107,8 +105,8 @@ def search_stations(gps, country='US', state='None', time_end='None', station_nu
             continue
         if len(stations) >= station_num:
             continue
-        usaf, wban, lat, lng = df_isd.iloc[row][['USAF', 'WBAN', 'LAT', 'LON']]
-        stations['%d-%d' % (usaf, wban)] = distance, lat, lng
+        usaf, wban, lat, lng, name = df_isd.iloc[row][['USAF', 'WBAN', 'LAT', 'LON', 'STATION NAME']]
+        stations['%d-%d' % (usaf, wban)] = distance, lat, lng, name
     logger.info('GPS(%.3f, %.3f) nearby station miles %s'
                 % (gps[0], gps[1], ' '.join([str(stations[x][0]) for x in stations])))
     return stations
@@ -141,7 +139,7 @@ def test_station_quality(country='US', state=None):
         else:
             lats_star.append(lat)
             lngs_star.append(lng)
-    g_map = gmplot.GoogleMapPlotter(np.mean(lats_star), np.mean(lngs_star), 6)
+    g_map = gmplot.GoogleMapPlotter(1.0*sum(lats_star)/len(lats_star), 1.0*sum(lngs_star)/len(lngs_poor), 6)
     g_map.scatter(lats_star, lngs_star, color='red', size=8)
     g_map.scatter(lats_poor, lngs_poor, color='blue', size=5)
     g_map.draw('../raw/star_stations.html')

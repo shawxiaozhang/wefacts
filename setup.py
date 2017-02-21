@@ -1,7 +1,6 @@
 from setuptools import setup
 
 INSTALL_REQUIRES = [
-    'numpy',
     'geopy',
     'pandas',
     'Geohash',
