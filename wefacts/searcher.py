@@ -24,24 +24,27 @@ FILE_ISD = '../raw/isd-history.csv'
 FILE_ZIP_FMT = '../raw/%4d_Gaz_zcta_national.txt'
 
 
-def load_isd(country='US', state=None, time_end=None):
-    time_alive = int((datetime.datetime.now() - datetime.timedelta(days=3)).strftime('%Y%m%d'))
-    if time_end and time_end <= time_alive:
-        time_alive = time_end
+def load_stations(country='US', state=None, weather_time_end=None):
+    station_alive_time = int((datetime.datetime.now() - datetime.timedelta(days=3)).strftime('%Y%m%d'))
+    if weather_time_end and weather_time_end <= station_alive_time:
+        station_alive_time = weather_time_end
+    if not weather_time_end:
+        weather_time_end = station_alive_time
 
-    # if need to download FILE_ISD
-    file_time = 0 if not os.path.isfile(FILE_ISD) \
+    file_create_time = 0 if not os.path.isfile(FILE_ISD) \
         else int(datetime.datetime.fromtimestamp(os.path.getmtime(FILE_ISD)).strftime('%Y%m%d'))
-    if time_end > file_time:
+    if weather_time_end > file_create_time:
         logger.info('downloading weather stations information ...')
         ftp = FTP('ftp.ncdc.noaa.gov')
         ftp.login()
         ftp.cwd('pub/data/noaa/')
+        if not os.path.exists('../raw'):
+            os.makedirs('../raw')
         ftp.retrbinary('RETR isd-history.csv', open('../raw/isd-history.csv', 'wb').write)
         ftp.quit()
 
     df = pd.read_csv(FILE_ISD)
-    i_alive = df['END'] >= time_alive
+    i_alive = df['END'] >= station_alive_time
     i_ctry = df['CTRY'] == country if country else True
     i_state = df['STATE'] == state if state else True
     df_isd = df.loc[i_alive & i_ctry & i_state]
@@ -69,7 +72,20 @@ def load_zip_code(census_year=2016):
     return zip2gps
 
 
-def _match_gps_isd(gps, df_isd, station_num=3, miles_threshold=20):
+def search_stations(gps, country='US', state='None', time_end='None', station_num=5, miles_threshold=20):
+    """
+    search nearby stations for a given GPS.
+    :param gps:                 (lat, lng) GPS point to search stations
+    :param country:             country to search
+    :param state:               state to search
+    :param time_end:            stations should keep uploading data till this time
+    :param station_num:         number of nearby stations to return
+    :param miles_threshold:     searching radius
+    :return:                    OrderedDict() of station ids, ordered by distance
+    """
+
+    df_isd = load_stations(country, state, time_end)
+
     geo2row = dict()
     for row in xrange(len(df_isd)):
         lat, lng = df_isd.iloc[row][['LAT', 'LON']]
@@ -84,23 +100,18 @@ def _match_gps_isd(gps, df_isd, station_num=3, miles_threshold=20):
         row2distance[row] = int(vincenty((lat, lng), gps).miles)
     sorted_rows = sorted(row2distance, key=row2distance.get)
 
-    matched = collections.OrderedDict()
+    stations = collections.OrderedDict()
     for i, row in enumerate(sorted_rows):
         distance = row2distance[row]
         if i >= 1 and distance > miles_threshold:
             continue
-        if len(matched) >= station_num:
+        if len(stations) >= station_num:
             continue
         usaf, wban, lat, lng = df_isd.iloc[row][['USAF', 'WBAN', 'LAT', 'LON']]
-        matched['%d-%d' % (usaf, wban)] = distance, lat, lng
+        stations['%d-%d' % (usaf, wban)] = distance, lat, lng
     logger.info('GPS(%.3f, %.3f) nearby station miles %s'
-                % (gps[0], gps[1], ' '.join([str(matched[x][0]) for x in matched])))
-    return matched
-
-
-def search_isd(gps, country='US', state='None', time_end='None', isd_num=3):
-    df_isd = load_isd(country, state, time_end)
-    return _match_gps_isd(gps, df_isd, isd_num)
+                % (gps[0], gps[1], ' '.join([str(stations[x][0]) for x in stations])))
+    return stations
 
 
 def plot_map(gps, matched, df_isd):
@@ -112,12 +123,31 @@ def plot_map(gps, matched, df_isd):
 
 
 def test_match(zip_code, state):
-    df_isd = load_isd('US', state)
+    df_isd = load_stations('US', state)
     zip2gps = load_zip_code()
     gps = zip2gps[zip_code]
-    matched = _match_gps_isd(gps, df_isd)
-    plot_map(gps, matched, df_isd)
+    stations = search_stations(gps, 'US', state)
+    plot_map(gps, stations, df_isd)
+
+
+def test_station_quality(country='US', state=None):
+    df_station = load_stations(country, state)
+    lats_star, lngs_star, lats_poor, lngs_poor = [], [], [], []
+    for i in xrange(len(df_station)):
+        usaf, wban, lat, lng = df_station.iloc[i][['USAF', 'WBAN', 'LAT', 'LON']]
+        if usaf == 999999 or wban == 99999:
+            lats_poor.append(lat)
+            lngs_poor.append(lng)
+        else:
+            lats_star.append(lat)
+            lngs_star.append(lng)
+    g_map = gmplot.GoogleMapPlotter(np.mean(lats_star), np.mean(lngs_star), 6)
+    g_map.scatter(lats_star, lngs_star, color='red', size=8)
+    g_map.scatter(lats_poor, lngs_poor, color='blue', size=5)
+    g_map.draw('../raw/star_stations.html')
 
 
 if __name__ == '__main__':
-    test_match('94014', 'CA')
+    # test_match('94014', 'CA')
+    # test_station_quality(country='US', state='CO')
+    test_station_quality(country='US')

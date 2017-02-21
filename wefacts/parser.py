@@ -33,7 +33,11 @@ def parse(sid, year, m1=1, d1=1, m2=12, d2=31):
     rec = np.ones(shape=(row_num, 12), dtype=int) * (-9999)
     i1 = 24 * _cal_day_gap(year, 1, 1, m1, d1)
     # row adjustment in case of missing records
+    if i1 >= len(lines):
+        i1 = len(lines) - 1
     while True:
+        if i1 >= len(lines):
+            break
         m, d, h = int(lines[i1][5:7]), int(lines[i1][8:11]), int(lines[i1][11:13])
         error = 24 * _cal_day_gap(year, m1, d1, m, d) + h
         if i1 < 0:
