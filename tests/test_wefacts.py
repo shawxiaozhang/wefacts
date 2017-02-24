@@ -7,72 +7,41 @@ class TestWeFacts(TestCase):
     def test_Boston_1997_AprilFoolStorm(self):
         df = wefacts.get_weather('Boston', 19970331, 19970401, False)
         precipitation = df['PPT'].values
-        print precipitation
-        print sum(precipitation)
         self.assertGreater(sum(precipitation), 300)
 
     def test_Pittsburgh_1950_BigSnow(self):
         df = wefacts.get_weather('Pittsburgh', 19501124, 19501130, False)
         precipitation = df['PPT'].values
-        print precipitation
-        print sum(precipitation)
         self.assertGreater(sum(precipitation), 300)
 
+    def test_CrossYear_SquirrelHill(self):
+        # todo nan in first hour of the year : interpolation
+        df = wefacts.get_weather('Squirrel Hill', 20161224, 20170106, False)
+        temperature = [t/10.0 for t in df['OAT'].values]
+        self.assertEqual(len(temperature), 14*24)
+        count_nan = 0
+        for t in temperature:
+            if t != t:
+                count_nan += 1
+            else:
+                self.assertGreater(t, -30)
+                self.assertLess(t, 40)
+        self.assertLessEqual(count_nan, 1)
 
+    def test_CrossYear_SFO(self):
+        df = wefacts.get_weather('SFO', 20151224, 20170106, False)
+        temperature = [t / 10.0 for t in df['OAT'].values]
+        count_nan = 0
+        for t in temperature:
+            if t != t:
+                count_nan += 1
+            else:
+                self.assertGreater(t, -30)
+                self.assertLess(t, 40)
+        self.assertEqual(len(temperature), (366 + 14) * 24)
+        self.assertLessEqual(count_nan, 10)
 
-
-# from ftplib import FTP
-# import os
-#
-# import pandas as pd
-# import matplotlib.pyplot as plt
-#
-# import stations
-# import parser
-# from util import *
-#
-# def _plot_weather(values, time_start, time_end, label=''):
-#     # todo interpolation
-#     i = 0
-#     while values[i] == -9999:
-#         i += 1
-#         if i >= len(values):
-#             logger.error('error in weather data : all -9999')
-#             return
-#     for j in xrange(i):
-#         values[j] = values[i]
-#     while i < len(values):
-#         if values[i] == -9999:
-#             values[i] = values[i - 1]
-#         i += 1
-#
-#     y_unit = ''
-#     if label == 'OAT':
-#         values = [x / 10.0 for x in values]
-#         y_unit = 'Celsius'
-#     elif label == 'WS':
-#         values = [x * 0.223694 for x in values]
-#         y_unit = 'mph'
-#     elif label == 'PPT':
-#         y_unit = 'mm'
-#
-#     plt.figure()
-#     plt.plot(xrange(len(values)), values, label=label)
-#     plt.xticks(xrange(0, len(values), 24))
-#     plt.xlabel('%d - %d' % (time_start, time_end))
-#     plt.ylabel(y_unit)
-#     plt.grid()
-#     plt.show()
-#
-#
-# def test_get_weather_cross_year():
-#     address, time_start, time_end, result_dir = 'squirrel hill', 20161224, 20170107, '../result/'
-#     get_weather(address, time_start, time_end, True, result_dir)
-#     df = pd.read_csv('%s%s-%d-%d.csv' % (result_dir, address, time_start, time_end))
-#     for label in ['OAT', 'WS', 'PPT']:
-#         values = df[label].values
-#         _plot_weather(values, time_start, time_end, label=label)
-#
+            #
 #
 # def test_cmp_stations():
 #     ftp_ids = set()

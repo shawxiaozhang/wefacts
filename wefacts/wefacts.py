@@ -11,7 +11,7 @@ import geo
 from util import logger
 
 
-def get_weather(address, date_start, date_end, dump_csv=True, result_dir='../result/'):
+def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../result/'):
     gps, country, state = geo.geo_address(address)
     if not gps:
         return None
