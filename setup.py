@@ -16,5 +16,7 @@ setup(name='wefacts',
       author='Xiao Zhang',
       author_email='shawxiaozhang@gmail.com',
       license='MIT',
+      test_suite='nose.collector',
+      tests_require=['nose'],
       packages=['wefacts'],
       zip_safe=False)

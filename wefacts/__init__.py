@@ -9,4 +9,3 @@ NOAA (National Oceanic and Atmospheric Administration, http://www.noaa.gov/)
 specifically, the weather data is available from ftp://ftp.ncdc.noaa.gov/pub/data/noaa/isd-lite/
 
 """
-

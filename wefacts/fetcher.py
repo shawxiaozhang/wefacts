@@ -1,10 +1,10 @@
+"""
+Fetch raw weather records from NOAA.
+"""
+
 import ftplib
 import gzip
 import os
-import logging
-
-logging.basicConfig(level=logging.DEBUG, format='%(pathname)s:%(lineno)d %(message)s',)
-logger = logging.getLogger(__name__)
 
 
 def fetch_isd_lite(year, sid, retry_count=1):
@@ -33,11 +33,3 @@ def fetch_isd_lite(year, sid, retry_count=1):
         f.close()
     os.remove('../raw/%s-%d.gz' % (sid, year))
     return True
-
-
-def test_ftp():
-    fetch_isd_lite(2017, '724940-23234')
-
-
-if __name__ == '__main__':
-    test_ftp()
