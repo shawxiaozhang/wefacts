@@ -32,7 +32,7 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
     df = None
     for year in xrange(year_start, year_end+1):
         for usaf_wban, location in station2location.items():
-            if not fetcher.fetch_isd_lite(year, usaf_wban):
+            if not fetcher.fetch_raw_lite(year, usaf_wban):
                 logger.error('cannot find %s-%d miles:%d' % (usaf_wban, year, location[0]))
                 continue
             logger.info('parsed %s-%d %d miles at %s' % (usaf_wban, year, location[0], location[3]))
