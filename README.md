@@ -15,3 +15,7 @@ Specifically, the weather data is available from ftp://ftp.ncdc.noaa.gov/pub/dat
     >>> temperature_celsius = [x/10.0 for x in df['OAT'].values]
     >>> print min(temperature_celsius), max(temperature_celsius)
     2.2 7.8
+    >>> temperature_fahrenheit = [int(round(x*1.8 + 32)) for x in temperature_celsius]
+    >>> print min(temperature_fahrenheit), max(temperature_fahrenheit)
+    36 46
+
