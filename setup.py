@@ -11,7 +11,7 @@ TESTS_REQUIRES = []
 
 setup(name='wefacts',
       version='0.1.0',
-      description='Weather Facts: historical weather data provider.',
+      description='Weather Facts: get historical weather data.',
       url='https://github.com/shawxiaozhang/wefacts',
       author='Xiao Zhang',
       author_email='shawxiaozhang@gmail.com',
