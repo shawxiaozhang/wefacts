@@ -10,7 +10,7 @@ INSTALL_REQUIRES = [
 TESTS_REQUIRES = []
 
 setup(name='wefacts',
-      version='0.0',
+      version='0.1.0',
       description='Weather Facts: historical weather data provider.',
       url='https://github.com/shawxiaozhang/wefacts',
       author='Xiao Zhang',
