@@ -74,30 +74,34 @@ def summarize_daily(df_weather):
             df_daily['Hour'].values, df_daily['OAT'].values, df_daily['WD'].values, \
             df_daily['WS'].values, df_daily['SKY'].values, df_daily['PPT'].values, df_daily['PPT6'].values
         if len(_remove_nan(dates)) < len(dates)/2 or len(_remove_nan(hours)) < len(hours)/2:
+            logger.error('Too Few Records ' + ';'.join('%s:%s' % (k, v) for k, v in df_weather.info.items()))
             continue
         day = [d for d in dates if d != -9999 and d == d][0]
         day = datetime.datetime.strptime(str(day), '%Y%m%d').strftime('%y/%m/%d %a')
         oat = [int(round(t/10.0*1.8 + 32)) if (t == t and t != -9999) else -9999 for t in oat]
         sky = [s if s == s else -9999 for s in sky]
         sky = [s if s <= 10 else s-10 for s in sky]
-        ws = [int(round(w/10*2.23694)) if (w == w and w != -9999) else -9999 for w in ws]
+        ws = [int(round(w/10.0*2.23694)) if (w == w and w != -9999) else -9999 for w in ws]
         ppt = [r/10.0 if (r == r and r != -9999) else -9999 for r in ppt]       # in mm
         ppt6 = [r/10.0 if (r == r and r != -9999) else -9999 for r in ppt6]     # in mm
 
         # todo rules to summarize daily report
         msg = 'Sunny'
         rain_sum = max(sum(_remove_nan(ppt)), sum(_remove_nan(ppt6)))
-        if rain_sum >= 10.0:
+        if rain_sum >= 1.5:
             msg = 'Rainy'
             rain_hours = set()
             for h in xrange(1, 24):
                 if ppt6[h] >= 1:
                     rain_hours |= set(range(h-6, h+1))
+                if ppt[h] >= 1:
+                    rain_hours.add(h)
             if len(rain_hours) > 0:
                 temperatures = [oat[h] for h in rain_hours]
-                if sum(temperatures)*1.0/len(temperatures) < 32:
+                # if sum(temperatures)*1.0/len(temperatures) < 35:
+                if min(temperatures) <= 32:
                     msg = 'Snow'
-        elif sum([1 for w in ws if w > 20]) >= 5:
+        elif sum([1 for w in ws if w >= 20]) >= 5:
             msg = 'Windy'
         elif sum([1 for s in sky if s >= 6]) >= 0.5*len(_remove_nan(sky)):
             msg = 'Cloudy'

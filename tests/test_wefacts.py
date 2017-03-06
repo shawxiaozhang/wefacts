@@ -53,17 +53,43 @@ class TestWeFacts(TestCase):
         date1 = int((datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d'))
         df = wefacts.get_weather('%f, %f' % (lat, lng), date1, date1)
         records = wefacts.summarize_daily(df)
-        self.assertGreater(len(records), 1)
+        self.assertGreaterEqual(len(records), 1)
 
     def test_Seattle_rainy_days(self):
-        df = wefacts.get_weather('Seattle', 20160101, 20161231)
+        df = wefacts.get_weather('SEATTLE', 20160101, 20161231)
         records = wefacts.summarize_daily(df)
         count_rainy = 0
         for d, summary in records:
             if summary['MSG'] == 'Rainy':
                 count_rainy += 1
-        self.assertGreater(count_rainy, 30)
+        self.assertGreater(count_rainy, 35)
 
-    # todo test rainy sunny snow days over the year for San Franciso, Seattle, Chicago, Boston
+    def test_Boston_snow_days(self):
+        # todo
+        df = wefacts.get_weather('Boston', 20160101, 20161231)
+        records = wefacts.summarize_daily(df)
+        count_snow = 0
+        for d, summary in records:
+            if summary['MSG'] == 'Snow':
+                count_snow += 1
+                print d, summary
+        self.assertGreater(count_snow, 11)
 
-    # todo parse/decode the full ish format raw data
+    def test_LA_sunny_days(self):
+        df = wefacts.get_weather('Beverly Hills', 20160101, 20161231)
+        records = wefacts.summarize_daily(df)
+        count_sunny = 0
+        for d, summary in records:
+            if summary['MSG'] == 'Sunny':
+                count_sunny += 1
+        self.assertGreater(count_sunny, 300)
+
+    def test_SFO_windy_days(self):
+        df = wefacts.get_weather('SAN FRANCISCO INTERNATIONAL AIRPORT', 20160101, 20161231)
+        records = wefacts.summarize_daily(df)
+        count_windy = 0
+        for d, summary in records:
+            if summary['MSG'] == 'Windy':
+                count_windy += 1
+        self.assertGreater(count_windy, 80)
+
