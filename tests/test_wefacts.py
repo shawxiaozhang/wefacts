@@ -72,7 +72,6 @@ class TestWeFacts(TestCase):
         for d, summary in records:
             if summary['MSG'] == 'Snow':
                 count_snow += 1
-                print d, summary
         self.assertGreater(count_snow, 11)
 
     def test_LA_sunny_days(self):

@@ -1,3 +1,7 @@
+** functions to add
+
+clean raw data routine
+
 ** databases to integrate
 
 severe weather database
