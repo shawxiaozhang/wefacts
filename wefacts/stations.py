@@ -24,7 +24,7 @@ def load_stations(country='US', state=None, weather_end_time=None):
     :param weather_end_time:
     :return df_stations:        pandas data frame
     """
-    station_alive_time = int((datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d'))
+    station_alive_time = int((datetime.datetime.now() - datetime.timedelta(days=2)).strftime('%Y%m%d'))
     if weather_end_time:
         station_alive_time = min(station_alive_time, weather_end_time)
 
@@ -48,7 +48,7 @@ def load_stations(country='US', state=None, weather_end_time=None):
     return df_stations
 
 
-def search_stations(gps, country='US', state='None', date_end='None', station_num=5, miles_threshold=20):
+def search_stations(gps, country='US', state='None', date_end='None', station_num=5, radius_miles=15):
     """
     Search nearby stations for a given GPS.
     :param gps:                 (lat, lng) GPS point to search stations
@@ -56,7 +56,7 @@ def search_stations(gps, country='US', state='None', date_end='None', station_nu
     :param state:               state to search
     :param date_end:            only search stations that are alive before date_end
     :param station_num:         number of nearby stations to return
-    :param miles_threshold:     searching radius
+    :param radius_miles:        searching radius
     :return:                    OrderedDict() of station ids, ordered by distance
     """
 
@@ -79,7 +79,7 @@ def search_stations(gps, country='US', state='None', date_end='None', station_nu
     stations = collections.OrderedDict()
     for i, row in enumerate(sorted_rows):
         distance = row2distance[row]
-        if i >= 1 and distance > miles_threshold:
+        if i >= 1 and distance > radius_miles:
             continue
         if len(stations) >= station_num:
             continue

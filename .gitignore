@@ -1,6 +1,7 @@
 # unnecessary directory #
 /raw/
 /result/
+/notebooks/
 /dist/
 /*.egg-info
 

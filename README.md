@@ -10,8 +10,22 @@ in data access category Land-Based Station (https://www.ncdc.noaa.gov/data-acces
 by NOAA (National Oceanic and Atmospheric Administration, https://www.ncdc.noaa.gov/data-access).
 
 Specifically, the raw weather data records are available at ftp://ftp.ncdc.noaa.gov/pub/data/noaa/isd-lite/ .
+It contains hourly weather recordings from 1700+ weather stations covering every state in the US.
+It also offers weather recordings for other countries with a limited coverage.
 
-** weather records columns:
+
+## get_weather examples
+
+    >>> from wefacts import wefacts
+    >>> df = wefacts.get_weather('Pittsburgh', 20161224, 20161224)
+    >>> temperature_celsius = [x/10.0 for x in df['OAT'].values]
+    >>> print min(temperature_celsius), max(temperature_celsius)
+    2.2 7.8
+    >>> temperature_fahrenheit = [int(round(x*1.8 + 32)) for x in temperature_celsius]
+    >>> print min(temperature_fahrenheit), max(temperature_fahrenheit)
+    36 46
+
+## weather records columns:
 - OAT: outdoor air temperature (in Celsius, scaled by 10)
 - DT: dew point temperature (in Celsius, scaled by 10)
 - SLP: sea level pressure (in Hectopascals, scaled by 10)
@@ -42,15 +56,3 @@ Specifically, the raw weather data records are available at ftp://ftp.ncdc.noaa.
     * 17: Thin overcast
     * 18: Overcast
     * 19: Dark overcast
-
-## get_weather examples
-
-    >>> from wefacts import wefacts
-    >>> df = wefacts.get_weather('Pittsburgh', 20161224, 20161224)
-    >>> temperature_celsius = [x/10.0 for x in df['OAT'].values]
-    >>> print min(temperature_celsius), max(temperature_celsius)
-    2.2 7.8
-    >>> temperature_fahrenheit = [int(round(x*1.8 + 32)) for x in temperature_celsius]
-    >>> print min(temperature_fahrenheit), max(temperature_fahrenheit)
-    36 46
-

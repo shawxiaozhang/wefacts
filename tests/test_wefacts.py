@@ -40,4 +40,30 @@ class TestWeFacts(TestCase):
         self.assertEqual(len(temperature), (366 + 14) * 24)
         self.assertLessEqual(count_nan, 10)
 
+    def test_yesterday_weather(self):
+        import urllib2
+        import json
+        import datetime
+        # geo-locate the connecting IP
+        f = urllib2.urlopen('http://freegeoip.net/json/')
+        json_string = f.read()
+        f.close()
+        location = json.loads(json_string)
+        lat, lng = location['latitude'], location['longitude']
+        date1 = int((datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d'))
+        df = wefacts.get_weather('%f, %f' % (lat, lng), date1, date1)
+        records = wefacts.summarize_daily(df)
+        self.assertGreater(len(records), 1)
+
+    def test_Seattle_rainy_days(self):
+        df = wefacts.get_weather('Seattle', 20160101, 20161231)
+        records = wefacts.summarize_daily(df)
+        count_rainy = 0
+        for d, summary in records:
+            if summary['MSG'] == 'Rainy':
+                count_rainy += 1
+        self.assertGreater(count_rainy, 30)
+
+    # todo test rainy sunny snow days over the year for San Franciso, Seattle, Chicago, Boston
+
     # todo parse/decode the full ish format raw data

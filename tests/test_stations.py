@@ -1,5 +1,6 @@
 from unittest import TestCase
 from ftplib import FTP
+import datetime
 
 from wefacts import stations
 
@@ -16,6 +17,30 @@ class TestStations(TestCase):
                 good += 1
         self.assertGreater(good, poor)
         self.assertGreater(good, 1500)
+
+    def test_stations_China(self):
+        end_time = int((datetime.datetime.now() - datetime.timedelta(days=7)).strftime('%Y%m%d'))
+        df_station = stations.load_stations(country='CH', state=None, weather_end_time=end_time)
+        good, poor = 0, 0
+        for i in xrange(len(df_station)):
+            usaf, wban, lat, lng = df_station.iloc[i][['USAF', 'WBAN', 'LAT', 'LON']]
+            if usaf == 999999 or wban == 99999:
+                poor += 1
+            else:
+                good += 1
+        self.assertGreaterEqual(good+poor, 200)
+
+    def test_stations_Switzerland(self):
+        end_time = int((datetime.datetime.now() - datetime.timedelta(days=7)).strftime('%Y%m%d'))
+        df_station = stations.load_stations(country='SW', state=None, weather_end_time=end_time)
+        good, poor = 0, 0
+        for i in xrange(len(df_station)):
+            usaf, wban, lat, lng = df_station.iloc[i][['USAF', 'WBAN', 'LAT', 'LON']]
+            if usaf == 999999 or wban == 99999:
+                poor += 1
+            else:
+                good += 1
+        self.assertGreaterEqual(good+poor, 100)
 
     def test_check_lite_stations(self):
         stations_lite = set()
