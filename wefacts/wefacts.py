@@ -34,7 +34,7 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
         logger.debug(msg)
 
     year_start, year_end = date_start / 10000, date_end / 10000
-    df, info = None, {'Address': address}
+    df, meta = None, {'Address': address}
     for year in xrange(year_start, year_end+1):
         for usaf_wban, location in station2location.items():
             if not fetcher.fetch_raw_lite(year, usaf_wban):
@@ -48,8 +48,8 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
                 m2, d2 = (date_end / 100) % 100, date_end % 100
             df_temp = parser.parse_raw_lite(usaf_wban, year, m1, d1, m2, d2)
             df = df_temp if df is None else df.append(df_temp)
-            info['StationID'] = usaf_wban
-            info['StationName'] = location[3]
+            meta['StationID'] = usaf_wban
+            meta['StationName'] = location[3]
             break
         else:
             logger.error('no weather info for %s in %d' % (address, year))
@@ -57,10 +57,12 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
     if dump_csv and df is not None:
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
-        df.to_csv('%s%s-%d-%d.csv' % (result_dir, address, date_start, date_end), index=False)
-        logger.info('weather available : %s%s-%d-%d.csv' % (result_dir, address, date_start, date_end))
+        meta['Filename'] = '%s%s-%d-%d.csv' % (result_dir, address,
+                                               date_start, date_end)
+        df.to_csv(meta['Filename'], index=False)
+        logger.info('weather available : %s' % meta['Filename'])
 
-    df.info = info
+    df.meta = meta
 
     return df
 

@@ -315,9 +315,11 @@ _CONST_COUNTRY_ABBREV = {
 
 def geo_address(address):
     geo_locator = Nominatim()
-    location = geo_locator.geocode(address)
+    try:
+        location = geo_locator.geocode(address)
+    except:
+        raise
     if not location:
-        print '%s : cannot geo-locate.' % address
         return None, None, None
     fields = [x.strip() for x in location.raw['display_name'].split(',')]
     country = fields[-1]

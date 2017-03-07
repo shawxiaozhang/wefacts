@@ -2,6 +2,8 @@
 
 clean raw data routine
 
+provider platform
+
 ** databases to integrate
 
 severe weather database
@@ -18,3 +20,5 @@ the full ish format raw data
 999999-94290, WSFO SEATTLE SAND POINT, cannot find
 
 722874-93134, DOWNTOWN L.A./USC CAMPUS, Los Angeles, only records several hours a day
+
+** completed
