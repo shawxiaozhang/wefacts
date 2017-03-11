@@ -22,7 +22,8 @@ def _cal_day_gap(year, month_start, day_start, month_end, day_end):
     return gap
 
 
-def parse_raw_lite(usaf_wban, year, month_start=1, day_start=1, month_end=12, day_end=31):
+def parse_raw_lite(usaf_wban, year, month_start=1, day_start=1, hour_start=0,
+                   month_end=12, day_end=31, hour_end=23):
     """
     :param usaf_wban:       station id
     :param year:
@@ -36,15 +37,14 @@ def parse_raw_lite(usaf_wban, year, month_start=1, day_start=1, month_end=12, da
     f = open(filename, 'r')
     lines = f.readlines()
     f.close()
-    row_num = 24 * (_cal_day_gap(year, month_start, day_start, month_end, day_end) + 1)
+
+    row_num = 24 * _cal_day_gap(year, month_start, day_start, month_end, day_end) + hour_end - hour_start + 1
     columns = ['ZTime', 'OAT', 'DT', 'SLP', 'WD', 'WS', 'SKY', 'PPT', 'PPT6']
 
-    # todo get df from numpy matrix .. ? or how to specify as int ?
     data = np.empty((row_num, len(columns)), dtype=int)
     data.fill(-9999)
 
-    df = pd.DataFrame(index=xrange(row_num), columns=columns, dtype=np.int)
-    i1 = 24 * _cal_day_gap(year, 1, 1, month_start, day_start)
+    i1 = 24 * _cal_day_gap(year, 1, 1, month_start, day_start) + hour_start
     # row adjustment in case of missing records
     if i1 >= len(lines):
         i1 = len(lines) - 1
@@ -52,7 +52,7 @@ def parse_raw_lite(usaf_wban, year, month_start=1, day_start=1, month_end=12, da
         if i1 >= len(lines):
             break
         m, d, h = int(lines[i1][5:7]), int(lines[i1][8:11]), int(lines[i1][11:13])
-        error = 24 * _cal_day_gap(year, month_start, day_start, m, d) + h
+        error = 24 * _cal_day_gap(year, month_start, day_start, m, d) + h - hour_start
         if i1 < 0:
             i1 = 0
             break
@@ -60,29 +60,24 @@ def parse_raw_lite(usaf_wban, year, month_start=1, day_start=1, month_end=12, da
             error_prev = -1
         else:
             m, d, h = int(lines[i1-1][5:7]), int(lines[i1-1][8:11]), int(lines[i1-1][11:13])
-            error_prev = 24 * _cal_day_gap(year, month_start, day_start, m, d) + h
+            error_prev = 24 * _cal_day_gap(year, month_start, day_start, m, d) + h - hour_start
         if error < 0:
             i1 += 1
         elif error == 0 or error_prev < 0:
             break
         else:
             i1 -= 1
-    i2 = i1 + 24 * _cal_day_gap(year, month_start, day_start, month_end, day_end) + 24
+    i2 = i1 + 24 * _cal_day_gap(year, month_start, day_start, month_end, day_end) + 24 + hour_end - hour_start
     for line in lines[i1:i2]:
         nums = line[:4], line[5:7], line[8:11], line[11:13], line[13:19], line[19:25], \
             line[25:31], line[31:37], line[37:43], line[43:49], line[49:55], line[55:61]
         nums = [int(_) for _ in nums]
-        row = 24 * _cal_day_gap(year, month_start, day_start, nums[1], nums[2]) + nums[3]
+        row = 24 * _cal_day_gap(year, month_start, day_start, nums[1], nums[2]) + nums[3] - hour_start
         if row >= row_num:
             break
         nums = [(nums[0]*1000000 + nums[1]*10000 + nums[2]*100 + nums[3])*10000] + nums[4:]
-        print nums
         data[row][:] = nums
-        for field, num in zip(columns, nums):
-            df.iloc[row][field] = num
     return pd.DataFrame(data=data, columns=columns, dtype=np.int)
-    # return df
-    # return df
 
 
 def parse_raw_severe_weather(category, date_start, date_end, gps):

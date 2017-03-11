@@ -23,12 +23,16 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
     if not gps:
         return None
 
-    local_time_zone = tz.gettz(_get_time_zone(gps, datetime.datetime.strptime(str(date_start), '%Y%m%d')))
-    # todo function
-    date_start_utc = int(datetime.datetime.strptime(str(date_start), '%Y%m%d').replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC')).strftime('%Y%m%d'))
-    date_end_utc = int(datetime.datetime.strptime(str(date_end), '%Y%m%d').replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC')).strftime('%Y%m%d'))
+    if isinstance(date_start, int):
+        date_start = datetime.datetime.strptime(str(date_start), '%Y%m%d')
+    if isinstance(date_end, int):
+        date_end = datetime.datetime.strptime(str(date_end), '%Y%m%d')
 
-    station2location = searcher.search_stations(gps, country, state, date_end, station_num, radius_miles)
+    local_time_zone = tz.gettz(_get_time_zone(gps, date_start))
+    date_start_utc = date_start.replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC'))
+    date_end_utc = date_end.replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC'))
+
+    station2location = searcher.search_stations(gps, country, state, date_end_utc, station_num, radius_miles)
 
     if station_option is not None:
         # re-sort: prioritize high quality stations
@@ -44,7 +48,6 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
         logger.debug(msg)
 
     meta = {'Address': address}
-    print date_start_utc
     df = _get_lite_records(date_start_utc, date_end_utc, station2location)
     meta['Stations'] = df.meta
 
@@ -62,8 +65,8 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
     if dump_csv and df is not None:
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
-        meta['Filename'] = '%s%s-%d-%d.csv' % (result_dir, address,
-                                               date_start, date_end)
+        meta['Filename'] = '%s%s-%s-%s.csv' % (result_dir, address,
+                                               date_start.strftime('%Y%m%d'), date_end.strftime('%Y%m%d'))
         ordered_cols = ['ZTime', 'Time'] + [col for col in df.columns.values if col not in ['ZTime', 'Time']]
         df.to_csv(meta['Filename'], index=False, header=True, cols=ordered_cols)
         logger.info('weather available : %s' % meta['Filename'])
@@ -74,8 +77,8 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
 
 
 def _get_lite_records(date_start, date_end, station2location):
-    # todo not exactly start from 00:00 within a day
-    year_start, year_end = date_start / 10000, date_end / 10000
+    date_end += datetime.timedelta(hours=23)
+    year_start, year_end = date_start.year, date_end.year
     df, stations = None, {}
     for year in xrange(year_start, year_end+1):
         for usaf_wban, location in station2location.items():
@@ -83,12 +86,12 @@ def _get_lite_records(date_start, date_end, station2location):
                 logger.error('cannot find %s-%d miles:%d' % (usaf_wban, year, location[0]))
                 continue
             logger.info('parsed %s-%d %d miles at %s' % (usaf_wban, year, location[0], location[3]))
-            m1, d1, m2, d2 = 1, 1, 12, 31
-            if year*10000 < date_start:
-                m1, d1 = (date_start / 100) % 100, date_start % 100
-            if (year+1)*10000 > date_end:
-                m2, d2 = (date_end / 100) % 100, date_end % 100
-            df_temp = parser.parse_raw_lite(usaf_wban, year, m1, d1, m2, d2)
+            m1, d1, m2, d2, h1, h2 = 1, 1, 12, 31, 0, 23
+            if year == date_start.year:
+                m1, d1, h1 = date_start.month, date_start.day, date_start.hour
+            if year == date_end.year:
+                m2, d2, h2 = date_end.month, date_end.day, date_end.hour
+            df_temp = parser.parse_raw_lite(usaf_wban, year, m1, d1, h1, m2, d2, h2)
             df = df_temp if df is None else df.append(df_temp)
             stations[year] = usaf_wban, location[0], location[3], location[1], location[2]
             break

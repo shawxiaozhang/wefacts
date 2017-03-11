@@ -57,7 +57,7 @@ class TestWeFacts(TestCase):
         self.assertGreaterEqual(len(records), 1)
 
     def test_Pittsburgh(self):
-        df = wefacts.get_weather('Daly City', 20170307, 20170309, dump_csv=True)
+        df = wefacts.get_weather('Daly City', 20141231, 20150102, dump_csv=True)
         print len(df)
         for i in xrange(len(df)):
             print df.iloc[i]['ZTime'], df.iloc[i]['Time'], df.iloc[i]['OAT']/10.0, df.iloc[i]['WS']/10.0

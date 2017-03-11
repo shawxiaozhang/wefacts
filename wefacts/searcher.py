@@ -16,17 +16,17 @@ from geopy.distance import vincenty
 FILE_STATIONS = '../raw/isd-history.csv'
 
 
-def load_stations(country='US', state=None, weather_end_time=None):
+def load_stations(country='US', state=None, date_weather_end=None):
     """
     Load weather stations in the specified region that are alive before weather_end_time.
     :param country:
     :param state:
-    :param weather_end_time:
+    :param date_weather_end:    datetime.datetime
     :return df_stations:        pandas data frame
     """
     station_alive_time = int((datetime.datetime.now() - datetime.timedelta(days=2)).strftime('%Y%m%d'))
-    if weather_end_time:
-        station_alive_time = min(station_alive_time, weather_end_time)
+    if date_weather_end:
+        station_alive_time = min(station_alive_time, int(date_weather_end.strftime('%Y%m%d')))
 
     file_create_time = 0 if not os.path.isfile(FILE_STATIONS) \
         else int(datetime.datetime.fromtimestamp(os.path.getmtime(FILE_STATIONS)).strftime('%Y%m%d'))

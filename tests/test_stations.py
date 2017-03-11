@@ -20,7 +20,7 @@ class TestSearcher(TestCase):
 
     def test_stations_China(self):
         end_time = int((datetime.datetime.now() - datetime.timedelta(days=7)).strftime('%Y%m%d'))
-        df_station = searcher.load_stations(country='CH', state=None, weather_end_time=end_time)
+        df_station = searcher.load_stations(country='CH', state=None, date_weather_end=end_time)
         good, poor = 0, 0
         for i in xrange(len(df_station)):
             usaf, wban, lat, lng = df_station.iloc[i][['USAF', 'WBAN', 'LAT', 'LON']]
@@ -32,7 +32,7 @@ class TestSearcher(TestCase):
 
     def test_stations_Switzerland(self):
         end_time = int((datetime.datetime.now() - datetime.timedelta(days=7)).strftime('%Y%m%d'))
-        df_station = searcher.load_stations(country='SW', state=None, weather_end_time=end_time)
+        df_station = searcher.load_stations(country='SW', state=None, date_weather_end=end_time)
         good, poor = 0, 0
         for i in xrange(len(df_station)):
             usaf, wban, lat, lng = df_station.iloc[i][['USAF', 'WBAN', 'LAT', 'LON']]
