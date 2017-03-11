@@ -2,7 +2,14 @@
 Parse raw weather records.
 """
 
+import datetime
+import pytz
+import json
+
 import pandas as pd
+import numpy as np
+
+from fetcher import fetch_raw_severe_weather
 
 
 def _cal_day_gap(year, month_start, day_start, month_end, day_end):
@@ -30,8 +37,13 @@ def parse_raw_lite(usaf_wban, year, month_start=1, day_start=1, month_end=12, da
     lines = f.readlines()
     f.close()
     row_num = 24 * (_cal_day_gap(year, month_start, day_start, month_end, day_end) + 1)
-    columns = ['Date', 'Hour', 'OAT', 'DT', 'SLP', 'WD', 'WS', 'SKY', 'PPT', 'PPT6']
-    df = pd.DataFrame(index=xrange(row_num), columns=columns)
+    columns = ['ZTime', 'OAT', 'DT', 'SLP', 'WD', 'WS', 'SKY', 'PPT', 'PPT6']
+
+    # todo get df from numpy matrix .. ? or how to specify as int ?
+    data = np.empty((row_num, len(columns)), dtype=int)
+    data.fill(-9999)
+
+    df = pd.DataFrame(index=xrange(row_num), columns=columns, dtype=np.int)
     i1 = 24 * _cal_day_gap(year, 1, 1, month_start, day_start)
     # row adjustment in case of missing records
     if i1 >= len(lines):
@@ -58,12 +70,56 @@ def parse_raw_lite(usaf_wban, year, month_start=1, day_start=1, month_end=12, da
     i2 = i1 + 24 * _cal_day_gap(year, month_start, day_start, month_end, day_end) + 24
     for line in lines[i1:i2]:
         nums = line[:4], line[5:7], line[8:11], line[11:13], line[13:19], line[19:25], \
-               line[25:31], line[31:37], line[37:43], line[43:49], line[49:55], line[55:61]
+            line[25:31], line[31:37], line[37:43], line[43:49], line[49:55], line[55:61]
         nums = [int(_) for _ in nums]
         row = 24 * _cal_day_gap(year, month_start, day_start, nums[1], nums[2]) + nums[3]
         if row >= row_num:
             break
-        nums = [nums[0]*10000 + nums[1]*100 + nums[2]] + nums[3:]
+        nums = [(nums[0]*1000000 + nums[1]*10000 + nums[2]*100 + nums[3])*10000] + nums[4:]
+        print nums
+        data[row][:] = nums
         for field, num in zip(columns, nums):
             df.iloc[row][field] = num
+    return pd.DataFrame(data=data, columns=columns, dtype=np.int)
+    # return df
+    # return df
+
+
+def parse_raw_severe_weather(category, date_start, date_end, gps):
+    df = None
+    if category == 'plsr':
+        fields = ['#ZTIME', 'LAT', 'LON', 'EVENT', 'MAGNITUDE', 'CITY', 'COUNTY', 'STATE',
+                  'SOURCE', 'WFO', 'REMARKS']
+        fields = ['#ZTIME', 'LON', 'LAT']
+    else:
+        fields = None
+    current_year, current_month = datetime.datetime.now().year, datetime.datetime.now().month
+    for year in xrange(date_start.year, date_end.year+1):
+        if year < current_year:
+            df_temp = pd.read_csv('../raw/%s-%4d.csv' % (category, year), header=2, escapechar='\\')
+            df_temp = _filter(df_temp, gps, date_start, date_end)
+            df = df_temp if df is None else df.append(df_temp)
+        elif year == current_year:
+            m1 = 1 if date_start.year < current_year else date_start.month
+            m2 = date_end.month
+            for month in xrange(m1, m2+1):
+                df_temp = pd.read_csv('../raw/%s-%4d%02d.csv' % (category, year, month), header=2, escapechar='\\')
+                df_temp = _filter(df_temp, gps, date_start, date_end)
+                df = df_temp if df is None else df.append(df_temp)
     return df
+
+
+def _filter(df, gps, dt_start, dt_end, radius_degree=0.2):
+    t1 = int(dt_start.strftime('%Y%m%d%H%M%S'))
+    t2 = int((dt_end + datetime.timedelta(days=1)).strftime('%Y%m%d%H%M%S'))
+    lat, lng = gps[0], gps[1]
+
+    i_lat1 = lat - radius_degree <= df['LAT']
+    i_lat2 = df['LAT'] <= lat + radius_degree
+    i_lng1 = lng - radius_degree <= df['LON']
+    i_lng2 = df['LON'] <= lng + radius_degree
+    i_time1 = t1 <= df['#ZTIME']
+    i_time2 = df['#ZTIME'] <= t2
+    return df.loc[i_lat1 & i_lat2 & i_lng1 & i_lng2 & i_time1 & i_time2]
+
+

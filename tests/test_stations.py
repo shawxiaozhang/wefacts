@@ -2,12 +2,12 @@ from unittest import TestCase
 from ftplib import FTP
 import datetime
 
-from wefacts import stations
+from wefacts import searcher
 
 
-class TestStations(TestCase):
+class TestSearcher(TestCase):
     def test_stations_quality_US(self):
-        df_station = stations.load_stations('US')
+        df_station = searcher.load_stations('US')
         good, poor = 0, 0
         for i in xrange(len(df_station)):
             usaf, wban = df_station.iloc[i][['USAF', 'WBAN']]
@@ -20,7 +20,7 @@ class TestStations(TestCase):
 
     def test_stations_China(self):
         end_time = int((datetime.datetime.now() - datetime.timedelta(days=7)).strftime('%Y%m%d'))
-        df_station = stations.load_stations(country='CH', state=None, weather_end_time=end_time)
+        df_station = searcher.load_stations(country='CH', state=None, weather_end_time=end_time)
         good, poor = 0, 0
         for i in xrange(len(df_station)):
             usaf, wban, lat, lng = df_station.iloc[i][['USAF', 'WBAN', 'LAT', 'LON']]
@@ -32,7 +32,7 @@ class TestStations(TestCase):
 
     def test_stations_Switzerland(self):
         end_time = int((datetime.datetime.now() - datetime.timedelta(days=7)).strftime('%Y%m%d'))
-        df_station = stations.load_stations(country='SW', state=None, weather_end_time=end_time)
+        df_station = searcher.load_stations(country='SW', state=None, weather_end_time=end_time)
         good, poor = 0, 0
         for i in xrange(len(df_station)):
             usaf, wban, lat, lng = df_station.iloc[i][['USAF', 'WBAN', 'LAT', 'LON']]
@@ -53,7 +53,7 @@ class TestStations(TestCase):
         ftp.quit()
 
         in_lite, not_lite = set(), set()
-        df_stations_all = stations.load_stations(country='US')
+        df_stations_all = searcher.load_stations(country='US')
         for i in xrange(len(df_stations_all)):
             usaf, wban = df_stations_all.iloc[i][['USAF', 'WBAN']]
             station = '%6d-%05d' % (usaf, wban)

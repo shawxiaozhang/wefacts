@@ -15,7 +15,8 @@ class TestWeFacts(TestCase):
         self.assertGreater(sum(precipitation), 300)
 
     def test_CrossYear_SquirrelHill(self):
-        df = wefacts.get_weather('Squirrel Hill', 20161224, 20170106, False)
+        # df = wefacts.get_weather('Squirrel Hill', 20161224, 20170106, False)
+        df = wefacts.get_weather('Daly City', 20170303, 20170308, True)
         temperature = [t/10.0 for t in df['OAT'].values]
         self.assertEqual(len(temperature), 14*24)
         count_nan = 0
@@ -54,6 +55,12 @@ class TestWeFacts(TestCase):
         df = wefacts.get_weather('%f, %f' % (lat, lng), date1, date1)
         records = wefacts.summarize_daily(df)
         self.assertGreaterEqual(len(records), 1)
+
+    def test_Pittsburgh(self):
+        df = wefacts.get_weather('Daly City', 20170307, 20170309, dump_csv=True)
+        print len(df)
+        for i in xrange(len(df)):
+            print df.iloc[i]['ZTime'], df.iloc[i]['Time'], df.iloc[i]['OAT']/10.0, df.iloc[i]['WS']/10.0
 
     def test_Seattle_rainy_days(self):
         df = wefacts.get_weather('SEATTLE', 20160101, 20161231)

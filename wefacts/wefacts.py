@@ -4,21 +4,31 @@ Provide weather facts for a specified address and time range.
 
 import os
 import datetime
+import urllib2
+import json
+from dateutil import tz
+
+import pandas as pd
 
 import fetcher
-import stations
+import searcher
 import parser
 import geo
 from util import logger
 
 
 def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../result/',
-                station_num=5, radius_miles=15, station_option='usaf_wban'):
+                station_num=5, radius_miles=15, station_option='usaf_wban', severe_weather='plsr'):
     gps, country, state = geo.geo_address(address)
     if not gps:
         return None
 
-    station2location = stations.search_stations(gps, country, state, date_end, station_num, radius_miles)
+    local_time_zone = tz.gettz(_get_time_zone(gps, datetime.datetime.strptime(str(date_start), '%Y%m%d')))
+    # todo function
+    date_start_utc = int(datetime.datetime.strptime(str(date_start), '%Y%m%d').replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC')).strftime('%Y%m%d'))
+    date_end_utc = int(datetime.datetime.strptime(str(date_end), '%Y%m%d').replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC')).strftime('%Y%m%d'))
+
+    station2location = searcher.search_stations(gps, country, state, date_end, station_num, radius_miles)
 
     if station_option is not None:
         # re-sort: prioritize high quality stations
@@ -33,8 +43,40 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
     for msg in ['%s: %d miles, GPS (%.2f, %.2f), %s' % (x, v[0], v[1], v[2], v[3])for x, v in station2location.items()]:
         logger.debug(msg)
 
+    meta = {'Address': address}
+    print date_start_utc
+    df = _get_lite_records(date_start_utc, date_end_utc, station2location)
+    meta['Stations'] = df.meta
+
+    # if severe_weather is not None:
+    #     response = fetcher.fetch_raw_severe_weather(severe_weather, date_start_utc, date_end_utc)
+    #     if response is 'OK':
+    #         df_sw = parser.parse_raw_severe_weather(severe_weather, date_start_utc, date_end_utc, gps)
+
+    # convert utc time to local time
+    local_time = [int(datetime.datetime.strptime(str(t), '%Y%m%d%H%M%S').replace(tzinfo=tz.gettz('UTC')).
+                      astimezone(local_time_zone).strftime('%Y%m%d%H%M%S')) if t != -9999 else t
+                  for t in df['ZTime'].values]
+    df['Time'] = pd.Series(local_time, index=df.index)
+
+    if dump_csv and df is not None:
+        if not os.path.exists(result_dir):
+            os.makedirs(result_dir)
+        meta['Filename'] = '%s%s-%d-%d.csv' % (result_dir, address,
+                                               date_start, date_end)
+        ordered_cols = ['ZTime', 'Time'] + [col for col in df.columns.values if col not in ['ZTime', 'Time']]
+        df.to_csv(meta['Filename'], index=False, header=True, cols=ordered_cols)
+        logger.info('weather available : %s' % meta['Filename'])
+
+    df.meta = meta
+
+    return df
+
+
+def _get_lite_records(date_start, date_end, station2location):
+    # todo not exactly start from 00:00 within a day
     year_start, year_end = date_start / 10000, date_end / 10000
-    df, meta = None, {'Address': address}
+    df, stations = None, {}
     for year in xrange(year_start, year_end+1):
         for usaf_wban, location in station2location.items():
             if not fetcher.fetch_raw_lite(year, usaf_wban):
@@ -48,22 +90,11 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
                 m2, d2 = (date_end / 100) % 100, date_end % 100
             df_temp = parser.parse_raw_lite(usaf_wban, year, m1, d1, m2, d2)
             df = df_temp if df is None else df.append(df_temp)
-            meta['StationID'] = usaf_wban
-            meta['StationName'] = location[3]
+            stations[year] = usaf_wban, location[0], location[3], location[1], location[2]
             break
         else:
-            logger.error('no weather info for %s in %d' % (address, year))
-
-    if dump_csv and df is not None:
-        if not os.path.exists(result_dir):
-            os.makedirs(result_dir)
-        meta['Filename'] = '%s%s-%d-%d.csv' % (result_dir, address,
-                                               date_start, date_end)
-        df.to_csv(meta['Filename'], index=False)
-        logger.info('weather available : %s' % meta['Filename'])
-
-    df.meta = meta
-
+            return 'Fail %4d' % year
+    df.meta = stations
     return df
 
 
@@ -118,3 +149,16 @@ def summarize_daily(df_weather):
         summary = {'Low': min(oat_valid), 'High': max(oat_valid), 'MSG': msg}
         reports.append((day, summary))
     return reports
+
+
+def _get_time_zone(gps, dt):
+    api_key = json.load(open('../../local/accounts.json'))['google_map_api_key']
+    url = "https://maps.googleapis.com/maps/api/timezone/json?location=%f,%f&timestamp=%d&key=%s" \
+          % (gps[0], gps[1], (dt - datetime.datetime(1970, 1, 1)).total_seconds(), api_key)
+    response = json.loads(urllib2.urlopen(url).read())
+    if response['status'] != 'OK':
+        return response['status']
+    return response['timeZoneId']
+
+
+# if __name__ == '__main__':
