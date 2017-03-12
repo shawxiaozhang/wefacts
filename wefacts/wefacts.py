@@ -7,6 +7,7 @@ import datetime
 import urllib2
 import json
 from dateutil import tz
+import collections
 
 import pandas as pd
 
@@ -32,43 +33,36 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
     date_start_utc = date_start.replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC'))
     date_end_utc = date_end.replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC'))
 
-    station2location = searcher.search_stations(gps, country, state, date_end_utc, station_num, radius_miles)
-
-    if station_option is not None:
-        # re-sort: prioritize high quality stations
-        for usaf_wban, location in station2location.items():
-            usaf, wban = usaf_wban.split('-')
-            if station_option == 'usaf_wban' and (usaf == '999999' or wban == '99999') \
-                    or station_option == 'usaf' and usaf == '999999' \
-                    or station_option == 'wban' and wban == '99999':
-                station2location.pop(usaf_wban)
-                station2location[usaf_wban] = location
+    station2location = searcher.search_stations(gps, country, state, date_end_utc, station_num, radius_miles, station_option)
     logger.debug('searched stations nearby:')
     for msg in ['%s: %d miles, GPS (%.2f, %.2f), %s' % (x, v[0], v[1], v[2], v[3])for x, v in station2location.items()]:
         logger.debug(msg)
 
     meta = {'Address': address}
-    df = _get_lite_records(date_start_utc, date_end_utc, station2location)
-    meta['Stations'] = df.meta
+    df = get_weather_lite(date_start_utc, date_end_utc, station2location)
+    df.set_index('ZTime')
+    meta['Stations'] = df.stations
 
-    # if severe_weather is not None:
-    #     response = fetcher.fetch_raw_severe_weather(severe_weather, date_start_utc, date_end_utc)
-    #     if response is 'OK':
-    #         df_sw = parser.parse_raw_severe_weather(severe_weather, date_start_utc, date_end_utc, gps)
+    if severe_weather is not None:
+        df_sw, df_sw_raw = get_weather_severe(severe_weather, date_start_utc, date_end_utc, gps)
 
-    # convert utc time to local time
-    local_time = [int(datetime.datetime.strptime(str(t), '%Y%m%d%H%M%S').replace(tzinfo=tz.gettz('UTC')).
-                      astimezone(local_time_zone).strftime('%Y%m%d%H%M%S')) if t != -9999 else t
-                  for t in df['ZTime'].values]
-    df['Time'] = pd.Series(local_time, index=df.index)
+        _dataframe_convert_local_time(df_sw_raw, local_time_zone)
+        if dump_csv and df_sw_raw is not None:
+            meta['SWFilename'] = '%s%s-%s-%s-SW.csv' % (result_dir, address, date_start.strftime('%Y%m%d'),
+                                                        date_end.strftime('%Y%m%d'))
+            df_sw_raw.to_csv(meta['SWFilename'], index=False, header=True)
+            logger.info('severe weather available : %s' % meta['SWFilename'])
+
+        df = pd.merge(df, df_sw, how='left', on='ZTime')
+
+    _dataframe_convert_local_time(df, local_time_zone)
 
     if dump_csv and df is not None:
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
         meta['Filename'] = '%s%s-%s-%s.csv' % (result_dir, address,
                                                date_start.strftime('%Y%m%d'), date_end.strftime('%Y%m%d'))
-        ordered_cols = ['ZTime', 'Time'] + [col for col in df.columns.values if col not in ['ZTime', 'Time']]
-        df.to_csv(meta['Filename'], index=False, header=True, cols=ordered_cols)
+        df.to_csv(meta['Filename'], index=False, header=True)
         logger.info('weather available : %s' % meta['Filename'])
 
     df.meta = meta
@@ -76,7 +70,7 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
     return df
 
 
-def _get_lite_records(date_start, date_end, station2location):
+def get_weather_lite(date_start, date_end, station2location):
     date_end += datetime.timedelta(hours=23)
     year_start, year_end = date_start.year, date_end.year
     df, stations = None, {}
@@ -97,8 +91,38 @@ def _get_lite_records(date_start, date_end, station2location):
             break
         else:
             return 'Fail %4d' % year
-    df.meta = stations
+    df.stations = stations
     return df
+
+
+def get_weather_severe(severe_weather, date_start, date_end, gps):
+    response = fetcher.fetch_raw_severe_weather(severe_weather, date_start, date_end)
+    if response is not 'OK':
+        return None, None
+    df_sw_raw = parser.parse_raw_severe_weather(severe_weather, date_start, date_end, gps)
+    cols = ['ZTime' if col == '#ZTIME' else col.title() for col in df_sw_raw.columns.values]
+    df_sw_raw.columns = cols
+
+    # integrate hourly
+    hour2reports = collections.defaultdict(dict)
+    for i in xrange(len(df_sw_raw)):
+        t, event, source = df_sw_raw.iloc[i][['ZTime', 'Event', 'Source']]
+        t = t/10000*10000
+        if event in hour2reports[t]:
+            hour2reports[t][event][source] += 1
+        else:
+            hour2reports[t][event] = collections.Counter({source: 1})
+
+    times, events, sources = [], [], []
+    for t in sorted(hour2reports.keys()):
+        event = max(hour2reports[t].keys(), key=lambda e: sum(hour2reports[t][e][s] for s in hour2reports[t][e]))
+        source = ', '.join(['%d %s' % (n, s) for s, n in hour2reports[t][event].iteritems()])
+        times.append(t)
+        events.append(event)
+        sources.append(source)
+    df_sw = pd.DataFrame(data={'ZTime': times, '%s.Event' % severe_weather.title(): events,
+                               '%s.Source' % severe_weather.title(): sources})
+    return df_sw, df_sw_raw
 
 
 def summarize_daily(df_weather):
@@ -162,6 +186,13 @@ def _get_time_zone(gps, dt):
     if response['status'] != 'OK':
         return response['status']
     return response['timeZoneId']
+
+
+def _dataframe_convert_local_time(df, local_time_zone):
+    local_time = [int(datetime.datetime.strptime(str(t), '%Y%m%d%H%M%S').replace(tzinfo=tz.gettz('UTC')).
+                      astimezone(local_time_zone).strftime('%Y%m%d%H%M%S')) if t != -9999 else t
+                  for t in df['ZTime'].values]
+    df.insert(1, 'Time', pd.Series(local_time, index=df.index))
 
 
 # if __name__ == '__main__':

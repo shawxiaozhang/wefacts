@@ -326,3 +326,9 @@ def geo_address(address):
     state = fields[-2] if not fields[-2].isdigit() else fields[-3]
     gps = (location.latitude, location.longitude)
     return gps, _CONST_COUNTRY_ABBREV.get(country, None), _CONST_US_STATE_ABBREV.get(state, None)
+
+
+def geo_reverse(gps):
+    geo_locator = Nominatim()
+    address = geo_locator.reverse("%f, %f" % (gps[0], gps[1]))
+    return address

@@ -80,31 +80,25 @@ def parse_raw_lite(usaf_wban, year, month_start=1, day_start=1, hour_start=0,
     return pd.DataFrame(data=data, columns=columns, dtype=np.int)
 
 
-def parse_raw_severe_weather(category, date_start, date_end, gps):
+def parse_raw_severe_weather(category, date_start, date_end, gps, radius_degree=0.15):
     df = None
-    if category == 'plsr':
-        fields = ['#ZTIME', 'LAT', 'LON', 'EVENT', 'MAGNITUDE', 'CITY', 'COUNTY', 'STATE',
-                  'SOURCE', 'WFO', 'REMARKS']
-        fields = ['#ZTIME', 'LON', 'LAT']
-    else:
-        fields = None
     current_year, current_month = datetime.datetime.now().year, datetime.datetime.now().month
     for year in xrange(date_start.year, date_end.year+1):
         if year < current_year:
             df_temp = pd.read_csv('../raw/%s-%4d.csv' % (category, year), header=2, escapechar='\\')
-            df_temp = _filter(df_temp, gps, date_start, date_end)
+            df_temp = _filter(df_temp, gps, date_start, date_end, radius_degree)
             df = df_temp if df is None else df.append(df_temp)
         elif year == current_year:
             m1 = 1 if date_start.year < current_year else date_start.month
             m2 = date_end.month
             for month in xrange(m1, m2+1):
                 df_temp = pd.read_csv('../raw/%s-%4d%02d.csv' % (category, year, month), header=2, escapechar='\\')
-                df_temp = _filter(df_temp, gps, date_start, date_end)
+                df_temp = _filter(df_temp, gps, date_start, date_end, radius_degree)
                 df = df_temp if df is None else df.append(df_temp)
     return df
 
 
-def _filter(df, gps, dt_start, dt_end, radius_degree=0.2):
+def _filter(df, gps, dt_start, dt_end, radius_degree):
     t1 = int(dt_start.strftime('%Y%m%d%H%M%S'))
     t2 = int((dt_end + datetime.timedelta(days=1)).strftime('%Y%m%d%H%M%S'))
     lat, lng = gps[0], gps[1]

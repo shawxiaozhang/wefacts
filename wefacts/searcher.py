@@ -48,7 +48,8 @@ def load_stations(country='US', state=None, date_weather_end=None):
     return df_stations
 
 
-def search_stations(gps, country='US', state='None', date_end='None', station_num=5, radius_miles=15):
+def search_stations(gps, country='US', state='None', date_end='None', station_num=5, radius_miles=15,
+                    station_option='usaf_wban'):
     """
     Search nearby stations for a given GPS.
     :param gps:                 (lat, lng) GPS point to search stations
@@ -76,13 +77,24 @@ def search_stations(gps, country='US', state='None', date_end='None', station_nu
         row2distance[row] = int(vincenty((lat, lng), gps).miles)
     sorted_rows = sorted(row2distance, key=row2distance.get)
 
-    stations = collections.OrderedDict()
+    station2location = collections.OrderedDict()
     for i, row in enumerate(sorted_rows):
         distance = row2distance[row]
         if i >= 1 and distance > radius_miles:
             continue
-        if len(stations) >= station_num:
+        if len(station2location) >= station_num:
             continue
         usaf, wban, lat, lng, name = df_stations.iloc[row][['USAF', 'WBAN', 'LAT', 'LON', 'STATION NAME']]
-        stations['%d-%d' % (usaf, wban)] = distance, lat, lng, name
-    return stations
+        station2location['%d-%d' % (usaf, wban)] = distance, lat, lng, name
+
+    if station_option is not None:
+        # re-sort: prioritize high quality stations
+        for usaf_wban, location in station2location.items():
+            usaf, wban = usaf_wban.split('-')
+            if station_option == 'usaf_wban' and (usaf == '999999' or wban == '99999') \
+                    or station_option == 'usaf' and usaf == '999999' \
+                    or station_option == 'wban' and wban == '99999':
+                station2location.pop(usaf_wban)
+                station2location[usaf_wban] = location
+
+    return station2location
