@@ -20,7 +20,7 @@ including temperature, wind speed, wind direction, etc.
 
 ## Data Request by Mail
 
-Send an email to [histwx@gmail.com](histwx@gmail.com) with the subject indicating the location and dates, separated by semicolon (;).  
+Send an email to _histwx@gmail.com_ with the subject indicating the location and dates, separated by semicolon (;).  
 
 Subject examples:
 
@@ -90,4 +90,4 @@ Not all weather data are recorded and missing values are represented as -9999.
 
 ## help
 
-If help is needed, please send an email to [histwx@gmail.com](histwx@gmail.com) with the word "help" starting in the subject.
+If help is needed, please send an email to _histwx@gmail.com_ with the word "help" starting in the subject.
