@@ -29,6 +29,8 @@ Subject examples:
 
 wefacts will geo-locate the address, search its nearby weather stations and local severe weather reports, and then send the requested weather data back to you. 
 
+The dates in the subject are the local time for the address.
+
 ## weather data source:
 The Integrated Surface Hourly Data Base
 in data access category Land-Based Station (https://www.ncdc.noaa.gov/data-access/land-based-station-data)

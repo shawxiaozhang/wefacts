@@ -1,7 +1,7 @@
 ### functions to add
 
 - clean raw data routine
-- provider platform
+- twitter handler
 - support time argument : and , (like Matlab arrays)
 
 ### databases to integrate
@@ -14,7 +14,7 @@
 - the full ish format raw data
 
 
-### stations and data source to check
+### stations and data source to double check
 
 - 999999-23272, SF DOWNTOWN, only record precipitation?
 
