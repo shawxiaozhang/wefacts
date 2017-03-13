@@ -20,7 +20,7 @@ including temperature, wind speed, wind direction, etc.
 
 ## Data Request by Mail
 
-Send an email to [histwx@gmail.com] with the subject indicating the location and dates, separated by semicolon (;).  
+Send an email to [histwx@gmail.com](histwx@gmail.com) with the subject indicating the location and dates, separated by semicolon (;).  
 
 Subject examples:
 
@@ -34,13 +34,13 @@ The dates in the subject are the local time for the address.
 ## weather data source:
 The Integrated Surface Hourly Data Base
 in data access category Land-Based Station [https://www.ncdc.noaa.gov/data-access/land-based-station-data](https://www.ncdc.noaa.gov/data-access/land-based-station-data)
-by NOAA (National Oceanic and Atmospheric Administration, [https://www.ncdc.noaa.gov/data-access]).
+by NOAA (National Oceanic and Atmospheric Administration, [https://www.ncdc.noaa.gov/data-access](https://www.ncdc.noaa.gov/data-access)).
 
-Specifically, the raw weather data records are available at [ftp://ftp.ncdc.noaa.gov/pub/data/noaa/isd-lite/] .
+Specifically, the raw weather data records are available at [ftp://ftp.ncdc.noaa.gov/pub/data/noaa/isd-lite/](ftp://ftp.ncdc.noaa.gov/pub/data/noaa/isd-lite/) .
 It contains hourly weather recordings from 1700+ weather stations covering every state in the US.
 It also offers weather recordings for other countries with a limited coverage.
 
-The severe weather reports, which are available at [ftp://ftp.ncdc.noaa.gov/pub/data/swdi/database-csv/v2/],
+The severe weather reports, which are available at [ftp://ftp.ncdc.noaa.gov/pub/data/swdi/database-csv/v2/](ftp://ftp.ncdc.noaa.gov/pub/data/swdi/database-csv/v2/),
 are also integrated into the data set.
 
 ## hourly weather records columns:
@@ -90,4 +90,4 @@ Not all weather data are recorded and missing values are represented as -9999.
 
 ## help
 
-If help is needed, please send an email to [histwx@gmail.com] with the word "help" starting in the subject.
+If help is needed, please send an email to [histwx@gmail.com](histwx@gmail.com) with the word "help" starting in the subject.
