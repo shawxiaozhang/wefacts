@@ -3,4 +3,5 @@ description: wefacts makes it easy for researchers and developers to obtain hist
 
 show_downloads: true
 google_analytics:
-theme: 
+theme: jekyll-theme-cayman
+
