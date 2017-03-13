@@ -33,7 +33,7 @@ The dates in the subject are the local time for the address.
 
 ## weather data source:
 The Integrated Surface Hourly Data Base
-in data access category Land-Based Station ([https://www.ncdc.noaa.gov/data-access/land-based-station-data])
+in data access category Land-Based Station [https://www.ncdc.noaa.gov/data-access/land-based-station-data](https://www.ncdc.noaa.gov/data-access/land-based-station-data)
 by NOAA (National Oceanic and Atmospheric Administration, [https://www.ncdc.noaa.gov/data-access]).
 
 Specifically, the raw weather data records are available at [ftp://ftp.ncdc.noaa.gov/pub/data/noaa/isd-lite/] .
