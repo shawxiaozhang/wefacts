@@ -13,6 +13,8 @@ Specifically, the raw weather data records are available at ftp://ftp.ncdc.noaa.
 It contains hourly weather recordings from 1700+ weather stations covering every state in the US.
 It also offers weather recordings for other countries with a limited coverage.
 
+The severe weather reports, which are available at ftp://ftp.ncdc.noaa.gov/pub/data/swdi/database-csv/v2/,
+are also integrated into the data set.
 
 ## get_weather examples
 
@@ -56,3 +58,12 @@ It also offers weather recordings for other countries with a limited coverage.
     * 17: Thin overcast
     * 18: Overcast
     * 19: Dark overcast
+
+## severe weather category
+    * 'nx3tvs'       - (Point)   NEXRAD Level-3 Tornado Vortex Signatures
+    * 'nx3meso'      - (Point)   NEXRAD Level-3 Mesocyclone Signatures
+    * 'nx3hail'      - (Point)   NEXRAD Level-3 Hail Signatures
+    * 'nx3structure' - (Point)   NEXRAD Level-3 Storm Cell Structure Information
+    * 'plsr'         - (Point)   Preliminary Local Storm Reports
+    * 'warn'         - (Polygon) Severe Thunderstorm, Tornado, Flash Flood and Special Marine warnings
+    * 'nldn'         - (Point)   Lightning strikes from Vaisala (.gov and .mil ONLY)

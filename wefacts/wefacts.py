@@ -87,7 +87,7 @@ def get_weather_lite(date_start, date_end, station2location):
                 m2, d2, h2 = date_end.month, date_end.day, date_end.hour
             df_temp = parser.parse_raw_lite(usaf_wban, year, m1, d1, h1, m2, d2, h2)
             df = df_temp if df is None else df.append(df_temp)
-            stations[year] = usaf_wban, location[0], location[3], location[1], location[2]
+            stations[year] = location[3], usaf_wban.split('-')[0], usaf_wban.split('-')[1], location[0], location[1], location[2]
             break
         else:
             return 'Fail %4d' % year
@@ -126,56 +126,89 @@ def get_weather_severe(severe_weather, date_start, date_end, gps):
 
 
 def summarize_daily(df_weather):
-    _remove_nan = lambda xx: [x for x in xx if (x != -9999 and x == x)]
-    reports = []
-    for i in xrange(0, len(df_weather), 24):
-        df_daily = df_weather.iloc[i:i+24]
-        dates, hours, oat, wd, ws, sky, ppt, ppt6 = df_daily['Date'].values, \
-            df_daily['Hour'].values, df_daily['OAT'].values, df_daily['WD'].values, \
-            df_daily['WS'].values, df_daily['SKY'].values, df_daily['PPT'].values, df_daily['PPT6'].values
-        if len(_remove_nan(dates)) < len(dates)/2 or len(_remove_nan(hours)) < len(hours)/2:
-            logger.error('Too Few Records ' + ';'.join('%s:%s' % (k, v) for k, v in df_weather.info.items()))
+    reports, day_i = [], 0
+    while day_i < len(df_weather):
+        t = df_weather.iloc[day_i]['Time']
+        if t == -9999 or t != t:
+            day_i += 1
             continue
-        day = [d for d in dates if d != -9999 and d == d][0]
-        day = datetime.datetime.strptime(str(day), '%Y%m%d').strftime('%y/%m/%d %a')
-        oat = [int(round(t/10.0*1.8 + 32)) if (t == t and t != -9999) else -9999 for t in oat]
-        sky = [s if s == s else -9999 for s in sky]
-        sky = [s if s <= 10 else s-10 for s in sky]
-        ws = [int(round(w/10.0*2.23694)) if (w == w and w != -9999) else -9999 for w in ws]
-        ppt = [r/10.0 if (r == r and r != -9999) else -9999 for r in ppt]       # in mm
-        ppt6 = [r/10.0 if (r == r and r != -9999) else -9999 for r in ppt6]     # in mm
+        day_j = min(day_i + 25, len(df_weather)-1)  # daylight saving
+        while day_j > day_i and df_weather.iloc[day_j]['Time'] >= int(t)/1000000*1000000 + 240000:
+            day_j -= 1
+        day_s, summary = _summarize_day(df_weather, day_i, day_j)
+        if day_s is not None and summary is not None:
+            reports.append((day_s, summary))
+        day_i = day_j + 1
 
-        # todo rules to summarize daily report
-        msg = 'Sunny'
-        rain_sum = max(sum(_remove_nan(ppt)), sum(_remove_nan(ppt6)))
-        if rain_sum >= 1.5:
-            msg = 'Rainy'
-            rain_hours = set()
-            for h in xrange(1, 24):
-                if ppt6[h] >= 1:
-                    rain_hours |= set(range(h-6, h+1))
-                if ppt[h] >= 1:
-                    rain_hours.add(h)
-            if len(rain_hours) > 0:
-                temperatures = [oat[h] for h in rain_hours]
-                # if sum(temperatures)*1.0/len(temperatures) < 35:
-                if min(temperatures) <= 32:
-                    msg = 'Snow'
-        elif sum([1 for w in ws if w >= 20]) >= 5:
-            msg = 'Windy'
-        elif sum([1 for s in sky if s >= 6]) >= 0.5*len(_remove_nan(sky)):
-            msg = 'Cloudy'
-        elif sum([1 for s in sky if 3 <= s <= 6]) >= 0.5*len(_remove_nan(sky)):
-            msg = 'Partly Cloudy'
-        elif sum([1 for s in sky if 2 <= s <= 3]) >= 0.5*len(_remove_nan(sky)):
-            msg = 'Mostly Sunny'
-        oat_valid = _remove_nan(oat)
-        if len(oat_valid) <= 0:
-            logger.error('No OAT ' + ';'.join('%s:%s' % (k, v) for k, v in df_weather.info.items()))
-            oat_valid = [-9999]
-        summary = {'Low': min(oat_valid), 'High': max(oat_valid), 'MSG': msg}
-        reports.append((day, summary))
     return reports
+
+
+def _remove_nan(xx):
+    return [x for x in xx if (x != -9999 and x == x)]
+
+
+def _summarize_day(df_weather, day_i, day_j):
+    df_daily = df_weather.iloc[day_i:day_j+1]
+    ztimes, times, oat, wd, ws, sky, ppt, ppt6 = df_daily['ZTime'].values, \
+        df_daily['Time'].values, df_daily['OAT'].values, df_daily['WD'].values, \
+        df_daily['WS'].values, df_daily['SKY'].values, df_daily['PPT'].values, df_daily['PPT6'].values
+    if len(_remove_nan(times)) < len(times)/2:
+        logger.error('Too Few Records ' + ';'.join('%s:%s' % (k, v) for k, v in df_weather.info.items()))
+        return None, None
+    day_s = datetime.datetime.strptime(str(df_weather.iloc[day_j]['Time']), '%Y%m%d%H%M%S').strftime('%y/%m/%d %a')
+
+    assert times[0]/1000000 == times[-1]/1000000    # assert same day
+
+    oat = [int(round(t/10.0*1.8 + 32)) if (t == t and t != -9999) else -9999 for t in oat]
+    sky = [s if s == s else -9999 for s in sky]
+    sky = [s if s <= 10 else s-10 for s in sky]
+    ws = [int(round(w/10.0*2.23694)) if (w == w and w != -9999) else -9999 for w in ws]
+    ppt = [r/10.0 if (r == r and r != -9999) else -9999 for r in ppt]       # in mm
+    ppt6 = [r/10.0 if (r == r and r != -9999) else -9999 for r in ppt6]     # in mm
+
+    # todo rules to summarize daily report
+    msg = 'Sunny'
+    rain_sum = max(sum(_remove_nan(ppt)), sum(_remove_nan(ppt6)))
+    if rain_sum >= 1.5:
+        msg = 'Rainy'
+        rain_hours = set()
+        for h in xrange(1, day_j-day_i+1):
+            if ppt6[h] >= 1:
+                rain_hours |= set(range(h-6, h+1))
+            if ppt[h] >= 1:
+                rain_hours.add(h)
+        if len(rain_hours) > 0:
+            temperatures = [oat[h] for h in rain_hours]
+            # if sum(temperatures)*1.0/len(temperatures) < 35:
+            if min(temperatures) <= 32:
+                msg = 'Snow'
+    elif sum([1 for w in ws if w >= 20]) >= 5:
+        msg = 'Windy'
+    elif sum([1 for s in sky if s >= 6]) >= 0.5*len(_remove_nan(sky)):
+        msg = 'Cloudy'
+    elif sum([1 for s in sky if 3 <= s <= 6]) >= 0.5*len(_remove_nan(sky)):
+        msg = 'Partly Cloudy'
+    elif sum([1 for s in sky if 2 <= s <= 3]) >= 0.5*len(_remove_nan(sky)):
+        msg = 'Mostly Sunny'
+    oat_valid = _remove_nan(oat)
+    if len(oat_valid) <= 0:
+        logger.error('No OAT ' + ';'.join('%s:%s' % (k, v) for k, v in df_weather.info.items()))
+        oat_valid = [-9999]
+    summary = {'Low': min(oat_valid), 'High': max(oat_valid), 'MSG': msg}
+
+    # severe weather
+    plsr = collections.OrderedDict()
+    for h in xrange(day_j-day_i+1):
+        e = df_daily.iloc[h]['Plsr.Event']
+        if not e or e != e:
+            continue
+        if e in plsr:
+            plsr[e].append(h)
+        else:
+            plsr[e] = [h]
+    summary['Plsr'] = ', '.join(_translate(e) + ' at ' + ' '.join(['%d:00' % t for t in plsr[e]])
+                                for e in plsr)
+    return day_s, summary
 
 
 def _get_time_zone(gps, dt):
@@ -195,4 +228,19 @@ def _dataframe_convert_local_time(df, local_time_zone):
     df.insert(1, 'Time', pd.Series(local_time, index=df.index))
 
 
+_mapping = {'SNOW': 'Snow', 'FLOOD': 'Flood', 'NON-TSTM WND DMG': 'Wind Damage',
+            'DEBRIS FLOW': 'Debris Flow', 'COASTAL FLOOD': 'Coastal Flood',
+            'HIGH SUST WINDS': 'High Winds', 'FLASH FLOOD': 'Flash Flood',
+            'HEAVY RAIN': 'Heavy Rain', 'HAIL': 'Hail', 'LIGHTNING': 'Lightning',
+            'NON-TSTM WND GST': 'High Winds', 'TSTM WND DMG': 'Wind Damage',
+            'FREEZING RAIN': 'Freezing Rain', 'TSTM WND GST': 'Thunderstorm Winds'}
+
+
+def _translate(event):
+    # todo
+    if event in _mapping:
+        return _mapping[event]
+    else:
+        logger.error('Unknown event: ' + event)
+        return event.title()
 # if __name__ == '__main__':

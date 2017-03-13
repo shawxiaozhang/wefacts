@@ -59,6 +59,12 @@ class TestWeFacts(TestCase):
         df = wefacts.get_weather('Pittsburgh', 20130101, 20170301, dump_csv=True)
         self.assertGreater(len(df), 365*3)
 
+    def test_DalyCity(self):
+        df = wefacts.get_weather('Pittsburgh', 20160101, 20170201, dump_csv=True)
+        records = wefacts.summarize_daily(df)
+        for d, summary in records:
+            print d, summary
+
     def test_Seattle_rainy_days(self):
         df = wefacts.get_weather('SEATTLE', 20160101, 20161231)
         records = wefacts.summarize_daily(df)

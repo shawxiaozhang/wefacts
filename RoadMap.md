@@ -6,10 +6,8 @@
 
 ### databases to integrate
 
-
+- double check the terms in plsr database
 - severe weather database
-
-handle inch " in the string, bad for read_csv
 
 - https://www.ncdc.noaa.gov/swdiws/
 
@@ -28,10 +26,8 @@ handle inch " in the string, bad for read_csv
 
 - severe weather : ftp://ftp.ncdc.noaa.gov/pub/data/swdi/KNOWN_ISSUES.txt
 
-- ? local time in ftp://ftp.ncdc.noaa.gov/pub/data/noaa/isd-lite/
-
 ### completed
 - get_weather function
 - email publisher
-- user only needs specify local time
-- provide a full several data record, also pick the most significant one to combine with the hourly weather data
+- conversion from ZTime (UTC) to local time
+- integration of severe weather data (plsr)
