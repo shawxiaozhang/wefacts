@@ -1,5 +1,7 @@
-title: Cayman theme
-description: Cayman is a clean, responsive theme for GitHub Pages.
+title: wefacts
+description: wefacts makes it easy for researchers and developers to obtain historical weather data, 
+including hourly recordings of temperature, wind speed, wind direction, etc., and severe weather reports.
+
 show_downloads: true
 google_analytics:
 theme: 
