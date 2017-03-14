@@ -28,7 +28,7 @@ Examples of email subjects (corresponding data available in Data Samples):
 * 15213; 20160215; 20160314
 * Moffett Field, CA; 20170110; 20170123
 
-The dates (YYYYMMDD) are the local time for the address.
+The dates (format yyyymmdd) are the local time for the address.
 
 wefacts will geo-locate the address, search its nearby weather stations and local severe weather reports, and then send the requested weather data back to you.
 
