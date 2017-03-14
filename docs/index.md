@@ -10,9 +10,9 @@ layout: default
 
 <!-- There should be whitespace between paragraphs. We recommend including a README, or a file with information about your project. -->
 
-## [](#header-1)wefacts
+## [](#header-1)WeFacts
 
-wefacts ia a Python 2 client for providing historical weather data.
+wefacts (weather-facts) ia a Python 2 client for providing historical weather data.
 
 wefacts makes it easy for researchers and developers to obtain historical weather data
 including temperature, wind speed, wind direction, etc.
@@ -30,7 +30,7 @@ Examples of email subjects (corresponding data available in Data Samples):
 
 The dates (format yyyymmdd) are the local time for the address.
 
-wefacts will geo-locate the address, search its nearby weather stations and local severe weather reports, and then send the requested weather data back to you.
+wefacts will geo-locate the address, search its nearby weather stations and local severe weather reports, and then send the integrated weather data back to you.
 
 wefacts currently supports United States addresses; the hourly weather recordings start in 1901 (though only a few stations go back that far); the PLSR severe weather reports are available since 2005.
 
