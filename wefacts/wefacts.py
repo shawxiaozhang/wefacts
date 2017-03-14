@@ -40,20 +40,22 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
 
     meta = {'Address': address}
     df = get_weather_lite(date_start_utc, date_end_utc, station2location)
+    if df is None or not isinstance(df, pd.DataFrame):
+        return df
     df.set_index('ZTime')
     meta['Stations'] = df.stations
 
     if severe_weather is not None:
         df_sw, df_sw_raw = get_weather_severe(severe_weather, date_start_utc, date_end_utc, gps)
-
-        _dataframe_convert_local_time(df_sw_raw, local_time_zone)
-        if dump_csv and df_sw_raw is not None:
-            meta['SWFilename'] = '%s%s-%s-%s-SW.csv' % (result_dir, address, date_start.strftime('%Y%m%d'),
-                                                        date_end.strftime('%Y%m%d'))
-            df_sw_raw.to_csv(meta['SWFilename'], index=False, header=True)
-            logger.info('severe weather available : %s' % meta['SWFilename'])
-
-        df = pd.merge(df, df_sw, how='left', on='ZTime')
+        if isinstance(df_sw_raw, pd.DataFrame):
+            _dataframe_convert_local_time(df_sw_raw, local_time_zone)
+            if dump_csv:
+                meta['SWFilename'] = '%s%s-%s-%s-SW.csv' % (result_dir, address, date_start.strftime('%Y%m%d'),
+                                                            date_end.strftime('%Y%m%d'))
+                df_sw_raw.to_csv(meta['SWFilename'], index=False, header=True)
+                logger.info('severe weather available : %s' % meta['SWFilename'])
+        if isinstance(df_sw, pd.DataFrame):
+            df = pd.merge(df, df_sw, how='left', on='ZTime')
 
     _dataframe_convert_local_time(df, local_time_zone)
 

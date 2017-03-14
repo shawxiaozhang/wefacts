@@ -10,7 +10,7 @@ layout: default
 
 <!-- There should be whitespace between paragraphs. We recommend including a README, or a file with information about your project. -->
 
-# [](#header-1)wefacts
+## [](#header-1)wefacts
 
 wefacts ia a Python 2 client for providing historical weather data.
 
@@ -22,16 +22,20 @@ including temperature, wind speed, wind direction, etc.
 
 Send an email to _histwx@gmail.com_ with the subject indicating the location and dates, separated by semicolon (;).  
 
-Subject examples:
+Examples of email subjects (corresponding data available in Data Samples):
 
-* 5000 Forbes Ave, Pittsburgh, PA 15213; 160101; 161231
-* Pittsburgh; 20170101; 20170131
+* 5000 Forbes Ave, Pittsburgh, PA 15213; 20160515; 20160515
+* 15213; 20160101; 20161231
+* Moffett Field, CA; 20161201; 20170131
 
-wefacts will geo-locate the address, search its nearby weather stations and local severe weather reports, and then send the requested weather data back to you. 
+The dates are the local time for the address.
 
-The dates in the subject are the local time for the address.
+wefacts will geo-locate the address, search its nearby weather stations and local severe weather reports, and then send the requested weather data back to you.
 
-## weather data source:
+wefacts currently supports United States addresses; the hourly weather recordings start in 1901 (though only a few stations go back that far); the PLSR severe weather reports are available since 2005.
+
+
+## Weather Data Source:
 The Integrated Surface Hourly Data Base
 in data access category Land-Based Station [https://www.ncdc.noaa.gov/data-access/land-based-station-data](https://www.ncdc.noaa.gov/data-access/land-based-station-data)
 by NOAA (National Oceanic and Atmospheric Administration, [https://www.ncdc.noaa.gov/data-access](https://www.ncdc.noaa.gov/data-access)).
@@ -43,7 +47,7 @@ It also offers weather recordings for other countries with a limited coverage.
 The severe weather reports, which are available at [ftp://ftp.ncdc.noaa.gov/pub/data/swdi/database-csv/v2/](ftp://ftp.ncdc.noaa.gov/pub/data/swdi/database-csv/v2/),
 are also integrated into the data set.
 
-## hourly weather records columns:
+## Hourly Weather Records Columns:
 - OAT: outdoor air temperature (in Celsius, scaled by 10)
 - DT: dew point temperature (in Celsius, scaled by 10)
 - SLP: sea level pressure (in Hectopascals, scaled by 10)
@@ -75,7 +79,7 @@ are also integrated into the data set.
     * 18: Overcast
     * 19: Dark overcast
 
-## severe weather category
+## Severe Weather Category
     - 'nx3tvs'       - (Point)   NEXRAD Level-3 Tornado Vortex Signatures
     - 'nx3meso'      - (Point)   NEXRAD Level-3 Mesocyclone Signatures
     - 'nx3hail'      - (Point)   NEXRAD Level-3 Hail Signatures
@@ -84,10 +88,10 @@ are also integrated into the data set.
     - 'warn'         - (Polygon) Severe Thunderstorm, Tornado, Flash Flood and Special Marine warnings
     - 'nldn'         - (Point)   Lightning strikes from Vaisala (.gov and .mil ONLY)
 
-## missing records
+## Missing Records
 
 Not all weather data are recorded and missing values are represented as -9999.
 
-## help
+## Help
 
 If help is needed, please send an email to _histwx@gmail.com_ with the word "help" starting in the subject.

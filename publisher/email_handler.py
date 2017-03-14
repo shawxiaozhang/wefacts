@@ -84,6 +84,8 @@ class EmailHandler():
             df = wefacts.get_weather(location, int(date1.strftime('%Y%m%d')), int(date2.strftime('%Y%m%d')), True)
             if df is None:
                 body += self._msg_sorry + '\nCannot geo-locate %s.\n' % location + self._msg_instructions
+            elif isinstance(df, str):
+                body += '\n\n' + df
             elif isinstance(df, pd.DataFrame):
                 attachment = MIMEBase('application', 'octet-stream')
                 attachment.set_payload(open(df.meta['Filename'], 'rb').read())
