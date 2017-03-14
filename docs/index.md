@@ -24,11 +24,11 @@ Send an email to _histwx@gmail.com_ with the subject indicating the location and
 
 Examples of email subjects (corresponding data available in Data Samples):
 
-* 5000 Forbes Ave, Pittsburgh, PA 15213; 20160515; 20160515
-* 15213; 20160101; 20161231
-* Moffett Field, CA; 20161201; 20170131
+* 5000 Forbes Ave, Pittsburgh, PA 15213; 20160112; 20160112
+* 15213; 20160215; 20160314
+* Moffett Field, CA; 20170110; 20170123
 
-The dates are the local time for the address.
+The dates (YYYYMMDD) are the local time for the address.
 
 wefacts will geo-locate the address, search its nearby weather stations and local severe weather reports, and then send the requested weather data back to you.
 

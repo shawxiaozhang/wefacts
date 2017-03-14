@@ -66,12 +66,12 @@ class TestWeFacts(TestCase):
             print d, summary
 
     def test_docs_data_samples(self):
-        df = wefacts.get_weather('5000 Forbes Ave, Pittsburgh, PA 15213', 20160515, 20160515, dump_csv=True)
+        df = wefacts.get_weather('5000 Forbes Ave, Pittsburgh, PA 15213', 20160112, 20160112, dump_csv=True)
         self.assertEqual(len(df), 24)
-        df = wefacts.get_weather('15213', 20160101, 20161231, dump_csv=True)
-        self.assertEqual(len(df), 24*366)
-        df = wefacts.get_weather('Moffett Field, CA', 20161201, 20170131, dump_csv=True)
-        self.assertEqual(len(df), 24*31)
+        df = wefacts.get_weather('15213', 20160215, 20160314, dump_csv=True)
+        self.assertEqual(len(df), 24*29-1)  # daylight saving
+        df = wefacts.get_weather('Moffett Field, CA', 20170110, 20170123, dump_csv=True)
+        self.assertEqual(len(df), 24*14)
 
     def test_Seattle_rainy_days(self):
         df = wefacts.get_weather('SEATTLE', 20160101, 20161231)

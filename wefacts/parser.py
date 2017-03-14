@@ -95,6 +95,7 @@ def parse_raw_severe_weather(category, date_start, date_end, gps, radius_degree=
                 df_temp = pd.read_csv('../raw/%s-%4d%02d.csv' % (category, year, month), header=2, escapechar='\\')
                 df_temp = _filter(df_temp, gps, date_start, date_end, radius_degree)
                 df = df_temp if df is None else df.append(df_temp)
+    df.sort_values('#ZTIME', inplace=True)
     return df
 
 
