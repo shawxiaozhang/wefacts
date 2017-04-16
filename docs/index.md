@@ -34,6 +34,9 @@ wefacts will geo-locate the address, search its nearby weather stations and loca
 
 wefacts currently supports United States addresses; the hourly weather recordings start in 1901 (though only a few stations go back that far); the PLSR severe weather reports are available since 2005.
 
+_The email protocol is currently in its beta version. Currently the email protocol can respond all the requests within 24 hours.
+If you haven't received response within 24 hours, please contact us with "help" in the email subject.
+Please contact us if you need an instantaneous response - we are deciding whether to upgrade the server for real time operation._
 
 ## Weather Data Source:
 The Integrated Surface Hourly Data Base
