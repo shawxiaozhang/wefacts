@@ -10,6 +10,20 @@ layout: default
 
 <!-- There should be whitespace between paragraphs. We recommend including a README, or a file with information about your project. -->
 
+
+{% for js in page.customjs %}
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-80874546-2', 'auto');
+  ga('send', 'pageview');
+
+</script>
+{% endfor %}
+
 ## [](#header-1)WeFacts
 
 wefacts (weather-facts) makes it easy for researchers and developers to obtain historical weather data
