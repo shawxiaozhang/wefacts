@@ -12,9 +12,7 @@ layout: default
 
 ## [](#header-1)WeFacts
 
-wefacts (weather-facts) ia a Python 2 client for providing historical weather data.
-
-wefacts makes it easy for researchers and developers to obtain historical weather data
+wefacts (weather-facts) makes it easy for researchers and developers to obtain historical weather data
 including temperature, wind speed, wind direction, etc.
 
 

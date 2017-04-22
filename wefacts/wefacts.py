@@ -15,10 +15,10 @@ import fetcher
 import searcher
 import parser
 import geo
-from util import logger
+import util
 
 
-def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../result/',
+def get_weather(address, date_start, date_end, dump_csv=False, result_dir='%s/result/' % util.base_dir,
                 station_num=5, radius_miles=15, station_option='usaf_wban', severe_weather='plsr'):
     gps, country, state = geo.geo_address(address)
     if not gps:
@@ -34,9 +34,9 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
     date_end_utc = date_end.replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC'))
 
     station2location = searcher.search_stations(gps, country, state, date_end_utc, station_num, radius_miles, station_option)
-    logger.debug('searched stations nearby:')
+    util.logger.debug('searched stations nearby:')
     for msg in ['%s: %d miles, GPS (%.2f, %.2f), %s' % (x, v[0], v[1], v[2], v[3])for x, v in station2location.items()]:
-        logger.debug(msg)
+        util.logger.debug(msg)
 
     meta = {'Address': address}
     df = get_weather_lite(date_start_utc, date_end_utc, station2location)
@@ -53,7 +53,7 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
                 meta['SWFilename'] = '%s%s-%s-%s-SW.csv' % (result_dir, address, date_start.strftime('%Y%m%d'),
                                                             date_end.strftime('%Y%m%d'))
                 df_sw_raw.to_csv(meta['SWFilename'], index=False, header=True)
-                logger.info('severe weather available : %s' % meta['SWFilename'])
+                util.logger.debug('severe weather available : %s' % meta['SWFilename'])
         if isinstance(df_sw, pd.DataFrame):
             df = pd.merge(df, df_sw, how='left', on='ZTime')
 
@@ -65,7 +65,7 @@ def get_weather(address, date_start, date_end, dump_csv=False, result_dir='../re
         meta['Filename'] = '%s%s-%s-%s.csv' % (result_dir, address,
                                                date_start.strftime('%Y%m%d'), date_end.strftime('%Y%m%d'))
         df.to_csv(meta['Filename'], index=False, header=True)
-        logger.info('weather available : %s' % meta['Filename'])
+        util.logger.debug('weather available : %s' % meta['Filename'])
 
     df.meta = meta
 
@@ -79,9 +79,9 @@ def get_weather_lite(date_start, date_end, station2location):
     for year in xrange(year_start, year_end+1):
         for usaf_wban, location in station2location.items():
             if not fetcher.fetch_raw_lite(year, usaf_wban):
-                logger.error('cannot find %s-%d miles:%d' % (usaf_wban, year, location[0]))
+                util.logger.error('cannot find %s-%d miles:%d' % (usaf_wban, year, location[0]))
                 continue
-            logger.info('parsed %s-%d %d miles at %s' % (usaf_wban, year, location[0], location[3]))
+            util.logger.debug('parsed %s-%d %d miles at %s' % (usaf_wban, year, location[0], location[3]))
             m1, d1, m2, d2, h1, h2 = 1, 1, 12, 31, 0, 23
             if year == date_start.year:
                 m1, d1, h1 = date_start.month, date_start.day, date_start.hour
@@ -155,7 +155,7 @@ def _summarize_day(df_weather, day_i, day_j):
         df_daily['Time'].values, df_daily['OAT'].values, df_daily['WD'].values, \
         df_daily['WS'].values, df_daily['SKY'].values, df_daily['PPT'].values, df_daily['PPT6'].values
     if len(_remove_nan(times)) < len(times)/2:
-        logger.error('Too Few Records ' + ';'.join('%s:%s' % (k, v) for k, v in df_weather.info.items()))
+        util.logger.error('Too Few Records ' + ';'.join('%s:%s' % (k, v) for k, v in df_weather.info.items()))
         return None, None
     day_s = datetime.datetime.strptime(str(df_weather.iloc[day_j]['Time']), '%Y%m%d%H%M%S').strftime('%y/%m/%d %a')
 
@@ -194,7 +194,7 @@ def _summarize_day(df_weather, day_i, day_j):
         msg = 'Mostly Sunny'
     oat_valid = _remove_nan(oat)
     if len(oat_valid) <= 0:
-        logger.error('No OAT ' + ';'.join('%s:%s' % (k, v) for k, v in df_weather.info.items()))
+        util.logger.error('No OAT ' + ';'.join('%s:%s' % (k, v) for k, v in df_weather.info.items()))
         oat_valid = [-9999]
     summary = {'Low': min(oat_valid), 'High': max(oat_valid), 'MSG': msg}
 
@@ -214,7 +214,7 @@ def _summarize_day(df_weather, day_i, day_j):
 
 
 def _get_time_zone(gps, dt):
-    api_key = json.load(open('../../local/accounts.json'))['google_map_api_key']
+    api_key = json.load(open('%s/local/accounts.json' % os.path.dirname(util.base_dir)))['google_map_api_key']
     url = "https://maps.googleapis.com/maps/api/timezone/json?location=%f,%f&timestamp=%d&key=%s" \
           % (gps[0], gps[1], (dt - datetime.datetime(1970, 1, 1)).total_seconds(), api_key)
     response = json.loads(urllib2.urlopen(url).read())
@@ -243,6 +243,6 @@ def _translate(event):
     if event in _mapping:
         return _mapping[event]
     else:
-        logger.error('Unknown event: ' + event)
+        util.logger.error('Unknown event: ' + event)
         return event.title()
 # if __name__ == '__main__':

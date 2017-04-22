@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 
 from fetcher import fetch_raw_severe_weather
-
+import util
 
 def _cal_day_gap(year, month_start, day_start, month_end, day_end):
     month2days = {1: 31, 2: 28, 3: 31, 5: 31, 7: 31, 8: 31, 10: 31, 12: 31}
@@ -33,7 +33,7 @@ def parse_raw_lite(usaf_wban, year, month_start=1, day_start=1, hour_start=0,
     :param day_end:         end day, inclusive
     :return rec:            pandas data frame, weather records
     """
-    filename = '../raw/%s-%4d.txt' % (usaf_wban, year)
+    filename = '%s/raw/%s-%4d.txt' % (util.base_dir, usaf_wban, year)
     f = open(filename, 'r')
     lines = f.readlines()
     f.close()
@@ -85,14 +85,14 @@ def parse_raw_severe_weather(category, date_start, date_end, gps, radius_degree=
     current_year, current_month = datetime.datetime.now().year, datetime.datetime.now().month
     for year in xrange(date_start.year, date_end.year+1):
         if year < current_year:
-            df_temp = pd.read_csv('../raw/%s-%4d.csv' % (category, year), header=2, escapechar='\\')
+            df_temp = pd.read_csv('%s/raw/%s-%4d.csv' % (util.base_dir, category, year), header=2, escapechar='\\')
             df_temp = _filter(df_temp, gps, date_start, date_end, radius_degree)
             df = df_temp if df is None else df.append(df_temp)
         elif year == current_year:
             m1 = 1 if date_start.year < current_year else date_start.month
             m2 = date_end.month
             for month in xrange(m1, m2+1):
-                df_temp = pd.read_csv('../raw/%s-%4d%02d.csv' % (category, year, month), header=2, escapechar='\\')
+                df_temp = pd.read_csv('%s/raw/%s-%4d%02d.csv' % (util.base_dir, category, year, month), header=2, escapechar='\\')
                 df_temp = _filter(df_temp, gps, date_start, date_end, radius_degree)
                 df = df_temp if df is None else df.append(df_temp)
     df.sort_values('#ZTIME', inplace=True)

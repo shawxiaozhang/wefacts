@@ -13,13 +13,14 @@ import datetime
 
 import pandas as pd
 
-from wefacts import wefacts
-from wefacts.util import logger
+import wefacts
+import util
 
 
 class EmailHandler():
     def __init__(self):
-        email_account = json.load(open('../../local/accounts.json'))
+        local_account = os.path.dirname(util.base_dir) + '/local/accounts.json'
+        email_account = json.load(open(local_account))
         self.email_address = email_account['gmail_username']
         self.imap = imaplib.IMAP4_SSL('imap.gmail.com')
         self.imap.login(email_account['gmail_username'], email_account['gmail_password'])
@@ -56,16 +57,17 @@ class EmailHandler():
             # email_subject = re.findall(r"[\w']+", email.message_from_string(data[0][1])['subject'])
             email_subject = email.message_from_string(data[0][1])['subject'].split(';')
             if len(email_subject) < 2:
-                self._reply(name, recipient, order)
-                continue
-            location = email_subject[0].strip()
-            date1 = email_subject[1].strip()
-            date2 = date1 if len(email_subject) <= 2 else email_subject[2].strip()
-            response = self._reply(name, recipient, order, location, date1, date2)
-            if response == 'OK':
-                self.imap.store(e_id, '+FLAGS', '\Seen')
+                response = self._reply(name, recipient, order)
             else:
-                logger.error('Fail replying for %s from %s' % (' '.join(email_subject), recipient))
+                location = email_subject[0].strip()
+                date1 = email_subject[1].strip()
+                date2 = date1 if len(email_subject) <= 2 else email_subject[2].strip()
+                response = self._reply(name, recipient, order, location, date1, date2)
+            if response == 'OK':
+                util.logger.info('Successfully replied %s from %s' % (' '.join(email_subject), recipient))
+            else:
+                util.logger.error('Fail replying for %s from %s' % (' '.join(email_subject), recipient))
+            self.imap.store(e_id, '+FLAGS', '\Seen')
 
     def _reply(self, name, recipient, order, location=None, date1=None, date2=None, note=''):
         msg = MIMEMultipart()
@@ -117,8 +119,8 @@ class EmailHandler():
             self.smtp.sendmail(self.email_address, recipient, text)
             return 'OK'
         except smtplib.SMTPException:
-            logger.error('Unable to send email to %s at %s' % (name, recipient))
             return 'Fail Sending'
+
 
 if __name__ == '__main__':
     gmail = EmailHandler()

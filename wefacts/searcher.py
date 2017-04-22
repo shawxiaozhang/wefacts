@@ -12,8 +12,9 @@ import pandas as pd
 import Geohash
 from geopy.distance import vincenty
 
+import util
 
-FILE_STATIONS = '../raw/isd-history.csv'
+FILE_STATIONS = '%s/raw/isd-history.csv' % util.base_dir
 
 
 def load_stations(country='US', state=None, date_weather_end=None):
@@ -35,9 +36,9 @@ def load_stations(country='US', state=None, date_weather_end=None):
         ftp = FTP('ftp.ncdc.noaa.gov')
         ftp.login()
         ftp.cwd('pub/data/noaa/')
-        if not os.path.exists('../raw'):
-            os.makedirs('../raw')
-        ftp.retrbinary('RETR isd-history.csv', open('../raw/isd-history.csv', 'wb').write)
+        if not os.path.exists('%s/raw' % util.base_dir):
+            os.makedirs('%s/raw' % util.base_dir)
+        ftp.retrbinary('RETR isd-history.csv', open('%s/raw/isd-history.csv' % util.base_dir, 'wb').write)
         ftp.quit()
 
     df = pd.read_csv(FILE_STATIONS)
