@@ -63,6 +63,8 @@ The severe weather reports, which are available at [ftp://ftp.ncdc.noaa.gov/pub/
 are also integrated into the data set.
 
 ## Hourly Weather Records Columns:
+- ZTime:
+- Time: local time
 - OAT: outdoor air temperature (in Celsius, scaled by 10)
 - DT: dew point temperature (in Celsius, scaled by 10)
 - SLP: sea level pressure (in Hectopascals, scaled by 10)

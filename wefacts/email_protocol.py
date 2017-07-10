@@ -46,6 +46,9 @@ class EmailHandler():
         result, data = self.imap.search(None, "ALL", '(UNSEEN)')
         email_ids = data[0].split()
 
+        # todo catch exception and continues with following emails
+        # todo when find exception : send an error email to user
+        # todo e.g. typo 201070601
         for e_id in email_ids:
             result, data = self.imap.fetch(e_id, '(BODY.PEEK[HEADER])')
             email_sender = email.message_from_string(data[0][1])['from']
@@ -56,6 +59,7 @@ class EmailHandler():
             order = email.message_from_string(data[0][1])['subject']
             # email_subject = re.findall(r"[\w']+", email.message_from_string(data[0][1])['subject'])
             email_subject = email.message_from_string(data[0][1])['subject'].split(';')
+            util.logger.info('Processing %s for %s' % (' '.join(email_subject), recipient))
             if len(email_subject) < 2:
                 response = self._reply(name, recipient, order)
             else:

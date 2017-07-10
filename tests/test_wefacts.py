@@ -52,7 +52,7 @@ class TestWeFacts(TestCase):
         lat, lng = location['latitude'], location['longitude']
         date1 = int((datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d'))
         df = wefacts.get_weather('%f, %f' % (lat, lng), date1, date1)
-        records = wefacts.summarize_daily(df)
+        records = wefacts._summarize_daily(df)
         self.assertGreaterEqual(len(records), 1)
 
     def test_Pittsburgh(self):
@@ -61,7 +61,7 @@ class TestWeFacts(TestCase):
 
     def test_DalyCity(self):
         df = wefacts.get_weather('Pittsburgh', 20160101, 20170201, dump_csv=True)
-        records = wefacts.summarize_daily(df)
+        records = wefacts._summarize_daily(df)
         for d, summary in records:
             print d, summary
 
@@ -75,7 +75,7 @@ class TestWeFacts(TestCase):
 
     def test_Seattle_rainy_days(self):
         df = wefacts.get_weather('SEATTLE', 20160101, 20161231)
-        records = wefacts.summarize_daily(df)
+        records = wefacts._summarize_daily(df)
         count_rainy = 0
         for d, summary in records:
             if summary['MSG'] == 'Rainy':
@@ -85,7 +85,7 @@ class TestWeFacts(TestCase):
     def test_Boston_snow_days(self):
         # todo
         df = wefacts.get_weather('Boston', 20160101, 20161231)
-        records = wefacts.summarize_daily(df)
+        records = wefacts._summarize_daily(df)
         count_snow = 0
         for d, summary in records:
             if summary['MSG'] == 'Snow':
@@ -94,7 +94,7 @@ class TestWeFacts(TestCase):
 
     def test_LA_sunny_days(self):
         df = wefacts.get_weather('Beverly Hills', 20160101, 20161231)
-        records = wefacts.summarize_daily(df)
+        records = wefacts._summarize_daily(df)
         count_sunny = 0
         for d, summary in records:
             if summary['MSG'] == 'Sunny':
@@ -103,7 +103,7 @@ class TestWeFacts(TestCase):
 
     def test_SFO_windy_days(self):
         df = wefacts.get_weather('SAN FRANCISCO INTERNATIONAL AIRPORT', 20160101, 20161231)
-        records = wefacts.summarize_daily(df)
+        records = wefacts._summarize_daily(df)
         count_windy = 0
         for d, summary in records:
             if summary['MSG'] == 'Windy':

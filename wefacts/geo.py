@@ -3,6 +3,28 @@
 
 from geopy.geocoders import Nominatim
 
+
+def geo_address(address):
+    geo_locator = Nominatim()
+    try:
+        location = geo_locator.geocode(address)
+    except:
+        raise
+    if not location:
+        return None, None, None
+    fields = [x.strip() for x in location.raw['display_name'].split(',')]
+    country = fields[-1]
+    state = fields[-2] if not fields[-2].isdigit() else fields[-3]
+    gps = (location.latitude, location.longitude)
+    return gps, _CONST_COUNTRY_ABBREV.get(country, None), _CONST_US_STATE_ABBREV.get(state, None)
+
+
+def geo_reverse(gps):
+    geo_locator = Nominatim()
+    address = geo_locator.reverse("%f, %f" % (gps[0], gps[1]))
+    return address
+
+
 _CONST_US_STATE_ABBREV = {
     'Alabama': 'AL',
     'Alaska': 'AK',
@@ -311,24 +333,3 @@ _CONST_COUNTRY_ABBREV = {
     'Zimbabwe': 'ZW',
     'Åland Islands': 'AX'
 }
-
-
-def geo_address(address):
-    geo_locator = Nominatim()
-    try:
-        location = geo_locator.geocode(address)
-    except:
-        raise
-    if not location:
-        return None, None, None
-    fields = [x.strip() for x in location.raw['display_name'].split(',')]
-    country = fields[-1]
-    state = fields[-2] if not fields[-2].isdigit() else fields[-3]
-    gps = (location.latitude, location.longitude)
-    return gps, _CONST_COUNTRY_ABBREV.get(country, None), _CONST_US_STATE_ABBREV.get(state, None)
-
-
-def geo_reverse(gps):
-    geo_locator = Nominatim()
-    address = geo_locator.reverse("%f, %f" % (gps[0], gps[1]))
-    return address

@@ -1,8 +1,8 @@
 # unnecessary directory #
 /raw/
 /result/
-/notebooks/
 /dist/
+/local/
 /*.egg-info
 
 # Compiled source #
