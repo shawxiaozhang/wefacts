@@ -111,4 +111,4 @@ Not all weather data are recorded and missing values are represented as -9999.
 
 ## Help
 
-If help is needed, please join our discussions on [https://groups.google.com/forum/#!forum/wefacts-users](WeFacts Google Group) 
+If help is needed, please join our discussions on [WeFacts Google Group](https://groups.google.com/forum/#!forum/wefacts-users) 
