@@ -30,7 +30,7 @@ wefacts (weather-facts) makes it easy for researchers and developers to obtain h
 including temperature, wind speed, wind direction, etc.
 
 
-## Data Request by Mail
+<!-- ## Data Request by Mail
 
 Send an email to _histwx@gmail.com_ with the subject indicating the location and dates, separated by semicolon (;).  
 
@@ -48,7 +48,7 @@ wefacts currently supports United States addresses; the hourly weather recording
 
 _The email protocol is currently in its beta version. Currently the email protocol can respond all the requests within 24 hours.
 If you haven't received response within 24 hours, please contact us with "help" in the email subject.
-Please contact us if you need an instantaneous response - we are deciding whether to upgrade the server for real time operation._
+Please contact us if you need an instantaneous response - we are deciding whether to upgrade the server for real time operation._ -->
 
 ## Weather Data Source:
 The Integrated Surface Hourly Data Base
@@ -111,4 +111,4 @@ Not all weather data are recorded and missing values are represented as -9999.
 
 ## Help
 
-If help is needed, please send an email to _histwx@gmail.com_ with the word "help" starting in the subject.
+If help is needed, please join our discussions on [https://groups.google.com/forum/#!forum/wefacts-users](WeFacts Google Group) 
