@@ -19,20 +19,21 @@ import util
 
 
 def search_nearby_stations(
-        address, date_start_local, date_end_local, search_station_num=10, search_radius_miles=30,
+        address, start_date_local, end_date_local, search_station_num=10, search_radius_miles=30,
         search_option='usaf_wban', dir_raw=util.DIR_RAW, dir_local=util.DIR_LOCAL):
     gps, country, state = geo.geo_address(address)
-    util.logger.debug('GeoParse %s: GPS (%.2f, %.2f), %s/%s' % (address, gps[0], gps[1], country, state))
     if not gps:
         return None
 
-    if isinstance(date_start_local, int):
-        date_start_local = datetime.datetime.strptime(str(date_start_local), '%Y%m%d')
-    if isinstance(date_end_local, int):
-        date_end_local = datetime.datetime.strptime(str(date_end_local), '%Y%m%d')
+    util.logger.debug('GeoParse %s: GPS (%.2f, %.2f), %s/%s' % (address, gps[0], gps[1], country, state))
 
-    local_time_zone = tz.gettz(_get_time_zone(gps, date_start_local, dir_local))
-    date_end_utc = date_end_local.replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC'))
+    if isinstance(start_date_local, int):
+        start_date_local = datetime.datetime.strptime(str(start_date_local), '%Y%m%d')
+    if isinstance(end_date_local, int):
+        end_date_local = datetime.datetime.strptime(str(end_date_local), '%Y%m%d')
+
+    local_tz = tz.gettz(_get_time_zone(gps, start_date_local, dir_local))
+    date_end_utc = end_date_local.replace(tzinfo=local_tz).astimezone(tz.gettz('UTC'))
 
     station2location = searcher.search_stations(gps, dir_raw, country, state, date_end_utc,
                                                 search_station_num, search_radius_miles,
@@ -42,26 +43,26 @@ def search_nearby_stations(
                 % (x, v['distance'], v['lat'], v['lng'], v['name'])for x, v in station2location.items()]:
         util.logger.debug(msg)
 
-    return station2location, gps, local_time_zone
+    return station2location, gps, local_tz
 
 
-def download_raw_weather(stations, gps, date_start_local, date_end_local, local_time_zone,
+def download_raw_weather(stations, start_date_local, end_date_local, local_tz,
                          dir_raw=util.DIR_RAW):
-    if isinstance(date_start_local, int):
-        date_start_local = datetime.datetime.strptime(str(date_start_local), '%Y%m%d')
-    if isinstance(date_end_local, int):
-        date_end_local = datetime.datetime.strptime(str(date_end_local), '%Y%m%d')
+    if isinstance(start_date_local, int):
+        start_date_local = datetime.datetime.strptime(str(start_date_local), '%Y%m%d')
+    if isinstance(end_date_local, int):
+        end_date_local = datetime.datetime.strptime(str(end_date_local), '%Y%m%d')
 
     if not os.path.exists(dir_raw):
         os.makedirs(dir_raw)
 
-    date_start_utc = date_start_local.replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC'))
-    date_end_utc = date_end_local.replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC'))
+    date_start_utc = start_date_local.replace(tzinfo=local_tz).astimezone(tz.gettz('UTC'))
+    date_end_utc = end_date_local.replace(tzinfo=local_tz).astimezone(tz.gettz('UTC'))
     date_end_utc += datetime.timedelta(hours=23)
     year_start, year_end = date_start_utc.year, date_end_utc.year
 
     station_year_list = []
-    # todo batch download at one ftp connection
+    # todo batch download through one ftp connection
     for station_usaf_wban in stations:
         for year in xrange(year_start, year_end+1):
             if os.path.isfile('%s%s-%d.csv' % (dir_raw, station_usaf_wban, year)):
@@ -74,21 +75,44 @@ def download_raw_weather(stations, gps, date_start_local, date_end_local, local_
     return station_year_list
 
 
-def dump_weather_result(
-        station2location, gps, address, date_start_local, date_end_local, local_time_zone,
-        dir_raw=util.DIR_RAW, dir_result=util.DIR_RESULT,
-        severe_weather='plsr'):
+def check_station_quality(stations, start_date_local, end_date_local, local_tz, dir_raw=util.DIR_RAW):
+    station2quality = {}
+    if isinstance(start_date_local, int):
+        start_date_local = datetime.datetime.strptime(str(start_date_local), '%Y%m%d')
+    if isinstance(end_date_local, int):
+        end_date_local = datetime.datetime.strptime(str(end_date_local), '%Y%m%d')
+    date_start_utc = start_date_local.replace(tzinfo=local_tz).astimezone(tz.gettz('UTC'))
+    date_end_utc = end_date_local.replace(tzinfo=local_tz).astimezone(tz.gettz('UTC'))
+    for id_usaf_wban in stations:
+        # TODO quality check only requires one year's weather data; the following reads all years
+        df = _get_weather_lite(date_start_utc, date_end_utc, id_usaf_wban, dir_raw)
+        if df is None or not isinstance(df, pd.DataFrame):
+            station2quality[id_usaf_wban] = []
+        else:
+            # quality check for each column
+            quality = {}
+            for col, bad_count in df[df <= -9999].count().to_dict().items():
+                quality[col] = 1 - 1.0*bad_count/len(df)
+            station2quality[id_usaf_wban] = quality
+    return station2quality
+
+
+def compose_weather_result(station2location, gps, address, start_date_local, end_date_local, local_tz,
+                           dir_raw=util.DIR_RAW, dir_result=util.DIR_RESULT,
+                           severe_weather='plsr', csv_prepend_address=True):
 
     if not os.path.exists(dir_result):
         os.makedirs(dir_result)
 
-    if isinstance(date_start_local, int):
-        date_start_local = datetime.datetime.strptime(str(date_start_local), '%Y%m%d')
-    if isinstance(date_end_local, int):
-        date_end_local = datetime.datetime.strptime(str(date_end_local), '%Y%m%d')
+    csv_prefix = address+'_' if csv_prepend_address else ''
 
-    date_start_utc = date_start_local.replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC'))
-    date_end_utc = date_end_local.replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC'))
+    if isinstance(start_date_local, int):
+        start_date_local = datetime.datetime.strptime(str(start_date_local), '%Y%m%d')
+    if isinstance(end_date_local, int):
+        end_date_local = datetime.datetime.strptime(str(end_date_local), '%Y%m%d')
+
+    date_start_utc = start_date_local.replace(tzinfo=local_tz).astimezone(tz.gettz('UTC'))
+    date_end_utc = end_date_local.replace(tzinfo=local_tz).astimezone(tz.gettz('UTC'))
 
     station2csv = {}
     station2dataframe = {}
@@ -107,22 +131,22 @@ def dump_weather_result(
         if severe_weather is not None:
             df_sw, df_sw_raw = _get_weather_severe(severe_weather, date_start_utc, date_end_utc, gps, dir_raw)
             if isinstance(df_sw_raw, pd.DataFrame):
-                _dataframe_convert_local_time(df_sw_raw, local_time_zone)
+                _dataframe_convert_local_time(df_sw_raw, local_tz)
                 metadata['Severe Weather CSV'] = \
-                    '%s%s_GPS(%.2f, %.2f)_%s_%s_SW.csv' \
-                    % (dir_result, location['name'], location['lat'], location['lng'],
-                       date_start_local.strftime('%Y%m%d'), date_end_local.strftime('%Y%m%d'))
+                    '%s%s%s_GPS(%.2f, %.2f)_%s_%s_SW.csv' \
+                    % (dir_result, csv_prefix, location['name'], location['lat'], location['lng'],
+                       start_date_local.strftime('%Y%m%d'), end_date_local.strftime('%Y%m%d'))
                 df_sw_raw.to_csv(metadata['Severe Weather CSV'], index=False, header=True)
                 util.logger.debug('dump severe weather at: %s' % metadata['Severe Weather CSV'])
             if isinstance(df_sw, pd.DataFrame):
                 df = pd.merge(df, df_sw, how='left', on='ZTime')
 
-        _dataframe_convert_local_time(df, local_time_zone)
+        _dataframe_convert_local_time(df, local_tz)
         if df is not None:
             metadata['Weather CSV'] = \
-                '%s%s_GPS(%.2f, %.2f)_%s_%s.csv' \
-                % (dir_result, location['name'], location['lat'], location['lng'],
-                   date_start_local.strftime('%Y%m%d'), date_end_local.strftime('%Y%m%d'))
+                '%s%s%s_GPS(%.2f, %.2f)_%s_%s.csv' \
+                % (dir_result, csv_prefix, location['name'], location['lat'], location['lng'],
+                   start_date_local.strftime('%Y%m%d'), end_date_local.strftime('%Y%m%d'))
             df.to_csv(metadata['Weather CSV'], index=False, header=True)
             util.logger.debug('dump weather at: %s' % metadata['Weather CSV'])
 
@@ -138,11 +162,11 @@ def get_weather(address, date_start, date_end,
                 search_station_num=5, search_radius_miles=15, search_option='usaf_wban',
                 severe_weather='plsr'):
 
-    station2location, gps, local_time_zone = search_nearby_stations(
+    station2location, gps, local_tz = search_nearby_stations(
         address, date_start, date_end, search_station_num, search_radius_miles, search_option)
 
-    date_start_utc = date_start.replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC'))
-    date_end_utc = date_end.replace(tzinfo=local_time_zone).astimezone(tz.gettz('UTC'))
+    date_start_utc = date_start.replace(tzinfo=local_tz).astimezone(tz.gettz('UTC'))
+    date_end_utc = date_end.replace(tzinfo=local_tz).astimezone(tz.gettz('UTC'))
 
     download_raw_weather(station2location.keys(), date_start_utc, date_end_utc)
 
@@ -159,7 +183,7 @@ def get_weather(address, date_start, date_end,
         if severe_weather is not None:
             df_sw, df_sw_raw = _get_weather_severe(severe_weather, date_start_utc, date_end_utc, gps)
             if isinstance(df_sw_raw, pd.DataFrame):
-                _dataframe_convert_local_time(df_sw_raw, local_time_zone)
+                _dataframe_convert_local_time(df_sw_raw, local_tz)
                 if dump_csv:
                     meta['SWFilename'] = \
                         '%s%s_GPS(%.2f, %.2f)_%s_%s_SW.csv' \
@@ -169,7 +193,7 @@ def get_weather(address, date_start, date_end,
                     util.logger.debug('severe weather available : %s' % meta['SWFilename'])
             if isinstance(df_sw, pd.DataFrame):
                 df = pd.merge(df, df_sw, how='left', on='ZTime')
-        _dataframe_convert_local_time(df, local_time_zone)
+        _dataframe_convert_local_time(df, local_tz)
         if dump_csv and df is not None:
             if not os.path.exists(result_dir):
                 os.makedirs(result_dir)
@@ -337,9 +361,9 @@ def _get_time_zone(gps, dt, dir_local):
     return response['timeZoneId']
 
 
-def _dataframe_convert_local_time(df, local_time_zone):
+def _dataframe_convert_local_time(df, local_tz):
     local_time = [int(datetime.datetime.strptime(str(int(t)), '%Y%m%d%H%M%S').replace(tzinfo=tz.gettz('UTC')).
-                      astimezone(local_time_zone).strftime('%Y%m%d%H%M%S')) if t != -9999 else t
+                      astimezone(local_tz).strftime('%Y%m%d%H%M%S')) if t != -9999 else t
                   for t in df['ZTime'].values]
     df.insert(1, 'Time', pd.Series(local_time, index=df.index))
 
@@ -361,14 +385,17 @@ def _translate(event):
         return event.title()
 
 
-def test_pipeline(address, start_date_local=20160606, end_date_local=20170201):
-    station2location, gps, local_tz = search_nearby_stations(address, start_date_local, end_date_local)
-    download_raw_weather(station2location.keys(), gps, start_date_local, end_date_local, local_tz)
-    station2csv, _ = dump_weather_result(station2location, gps, address, start_date_local, end_date_local, local_tz)
+def test_pipeline(address, start_date_local, end_date_local):
+    station2location, gps, local_tz = search_nearby_stations(address, start_date_local, end_date_local,
+                                                             search_option='usaf_wban')
+    download_raw_weather(station2location.keys(), start_date_local, end_date_local, local_tz)
+    station2quality = check_station_quality(station2location.keys(), start_date_local, end_date_local, local_tz)
+    print station2quality
+    station2csv, _ = compose_weather_result(station2location, gps, address, start_date_local, end_date_local, local_tz)
     for station, csv in station2csv.items():
         if csv is None: continue
         assert os.path.isfile(csv)
 
 
 if __name__ == '__main__':
-    test_pipeline('Daly City')
+    test_pipeline('85248', 20170701, 20170801)

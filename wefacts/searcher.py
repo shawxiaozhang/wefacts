@@ -91,17 +91,30 @@ def search_stations(gps, dir_raw, country='US', state='None', date_end='None', s
             'distance': distance,
             'lat': lat,
             'lng': lng,
-            'name': name
+            'name': _adjust_station_name(name)
         }
 
     if station_option is not None:
         # re-sort: prioritize high quality stations
+        station_score = {}
         for usaf_wban, location in station2location.items():
+            score = 100 - location['distance']
             usaf, wban = usaf_wban.split('-')
-            if station_option == 'usaf_wban' and (usaf == '999999' or wban == '99999') \
-                    or station_option == 'usaf' and usaf == '999999' \
-                    or station_option == 'wban' and wban == '99999':
-                station2location.pop(usaf_wban)
-                station2location[usaf_wban] = location
+            if usaf == '999999':
+                score -= 15
+            if wban == '99999':
+                score -= 10
+            if 'airport' in location['name'].lower():
+                score += 5
+            if 'international' in location['name'].lower() or 'intl' in location['name'].lower():
+                score += 30
+            station_score[usaf_wban] = score
+        station2location = collections.OrderedDict(
+            sorted(station2location.items(), key=lambda x: station_score[x[0]], reverse=True))
 
     return station2location
+
+
+def _adjust_station_name(name):
+    # replace '/' otherwise misunderstood as directory separator
+    return name.replace('/', ' ')

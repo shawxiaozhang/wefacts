@@ -3,6 +3,7 @@
 /result/
 /dist/
 /local/
+/build/
 /*.egg-info
 
 # Compiled source #
