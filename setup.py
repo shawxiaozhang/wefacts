@@ -24,7 +24,7 @@ setup(name='wefacts',
           'geopy==1.11.0',
           'Geohash==1.0',
           'pandas==0.19.2',
-          'numpy==1.12.0',
+          'numpy==1.21.0',
           'python-dateutil==2.6.0',
       ],
       zip_safe=False)
