@@ -21,7 +21,7 @@ setup(name='wefacts',
       tests_require=['nose'],
       packages=['wefacts'],
       install_requires=[
-          'geopy==1.11.0',
+          'geopy==2.5.0',
           'Geohash==1.0',
           'pandas==0.19.2',
           'numpy==1.12.0',
